@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "words": [
+    {
+      "id": "kataba",
+      "display": "كَتَبَ",
+      "speech": "كَتَبَ",
+      "segments": ["كَ", "تَ", "بَ"],
+      "letters": ["ك", "ت", "ب"],
+      "skills": ["short-vowels", "blending", "segmentation"],
+      "level": 1
+    },
+    {
+      "id": "kitab",
+      "display": "كِتَابٌ",
+      "speech": "كِتَابٌ",
+      "segments": ["كِ", "تَا", "بٌ"],
+      "letters": ["ك", "ت", "ا", "ب"],
+      "skills": ["short-vowels", "long-vowels"],
+      "level": 2
+    }
+  ]
+}
