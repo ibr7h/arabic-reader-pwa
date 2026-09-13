@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "letters": [
+    {
+      "id": "ba",
+      "letter": "ب",
+      "name": { "display": "باء", "speech": "بَاء" },
+      "shortVowels": [
+        { "id": "fatha", "display": "بَ", "speech": "بَ", "label": "فتحة" },
+        { "id": "damma", "display": "بُ", "speech": "بُ", "label": "ضمة" },
+        { "id": "kasra", "display": "بِ", "speech": "بِ", "label": "كسرة" }
+      ],
+      "longVowels": [
+        { "id": "alif", "display": "بَا", "speech": "بَا", "short": "بَ", "label": "مد بالألف" },
+        { "id": "waw", "display": "بُو", "speech": "بُو", "short": "بُ", "label": "مد بالواو" },
+        { "id": "yaa", "display": "بِي", "speech": "بِي", "short": "بِ", "label": "مد بالياء" }
+      ],
+      "positions": [
+        { "id": "isolated", "label": "منفصل", "form": "ب", "word": "بَابٌ", "speech": "بَابٌ" },
+        { "id": "initial", "label": "أول الكلمة", "form": "بـ", "word": "بَيْتٌ", "speech": "بَيْتٌ" },
+        { "id": "medial", "label": "وسط الكلمة", "form": "ـبـ", "word": "حَبْلٌ", "speech": "حَبْلٌ" },
+        { "id": "final", "label": "آخر الكلمة", "form": "ـب", "word": "كِتَابٌ", "speech": "كِتَابٌ" }
+      ]
+    }
+  ]
+}
