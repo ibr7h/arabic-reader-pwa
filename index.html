@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#fff7ed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="قارئ العربية" />
+  <title>قارئ العربية — النموذج الذهبي</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">قارئ العربية</p>
+        <h1>النموذج الذهبي للحرف <span class="accent">ب</span></h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="الإعدادات">⚙️</button>
+    </header>
+
+    <main>
+      <section class="hero card">
+        <div class="hero-copy">
+          <span class="pill">المرحلة التجريبية</span>
+          <h2>اسمع، ميّز، ثم اقرأ</h2>
+          <p>ابدأ بالحركات القصيرة، ثم المدود، ثم مواضع الحرف، وبعدها الدمج والتهجئة.</p>
+          <div class="progress-row" aria-label="التقدم العام">
+            <div class="progress-track"><span id="progressBar" style="width: 0%"></span></div>
+            <strong id="progressText">0%</strong>
+          </div>
+        </div>
+        <button id="heroLetter" class="letter-orb" aria-label="اسمع اسم الحرف باء">ب</button>
+      </section>
+
+      <nav class="lesson-tabs" aria-label="المراحل التعليمية">
+        <button class="tab active" data-view="short">الحركات</button>
+        <button class="tab" data-view="long">المدود</button>
+        <button class="tab" data-view="positions">المواضع</button>
+        <button class="tab" data-view="blend">الدمج</button>
+        <button class="tab" data-view="spell">التهجئة</button>
+      </nav>
+
+      <section id="short" class="lesson-view active card" aria-labelledby="shortTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">1 · الصوت القصير</p>
+            <h2 id="shortTitle">الحركات القصيرة</h2>
+          </div>
+          <span class="badge" id="shortScore">0/3</span>
+        </div>
+        <div class="sound-grid" id="shortGrid"></div>
+        <div class="challenge">
+          <p>اختبار سريع: اضغط «اسمع» ثم اختر الصوت الصحيح.</p>
+          <div class="challenge-row">
+            <button class="primary" id="shortChallengePlay">🔊 اسمع</button>
+            <div id="shortOptions" class="option-row"></div>
+          </div>
+          <p class="feedback" id="shortFeedback" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="long" class="lesson-view card" aria-labelledby="longTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">2 · الصوت الطويل</p>
+            <h2 id="longTitle">المدود الثلاثة</h2>
+          </div>
+          <span class="badge" id="longScore">0/3</span>
+        </div>
+        <div class="compare-list" id="longPairs"></div>
+        <div class="challenge">
+          <p>تمييز: هل الصوت قصير أم طويل؟</p>
+          <div class="challenge-row">
+            <button class="primary" id="lengthChallengePlay">🔊 اسمع</button>
+            <div class="option-row">
+              <button class="choice" data-length="short">قصير</button>
+              <button class="choice" data-length="long">طويل</button>
+            </div>
+          </div>
+          <p class="feedback" id="lengthFeedback" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="positions" class="lesson-view card" aria-labelledby="positionsTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">3 · شكل الحرف</p>
+            <h2 id="positionsTitle">مواضع الباء في الكلمة</h2>
+          </div>
+        </div>
+        <div class="position-grid" id="positionGrid"></div>
+      </section>
+
+      <section id="blend" class="lesson-view card" aria-labelledby="blendTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">4 · من الأصوات إلى الكلمة</p>
+            <h2 id="blendTitle">الدمج</h2>
+          </div>
+        </div>
+        <div class="blend-stage">
+          <p>اضغط المقاطع بالترتيب، ثم اسمع الكلمة كاملة.</p>
+          <div class="syllables" id="blendSyllables"></div>
+          <div class="blend-arrow">↓</div>
+          <button class="word-card" id="blendWord">كَتَبَ</button>
+          <div class="center-actions">
+            <button class="secondary" id="blendSequence">▶️ دمج بطيء</button>
+            <button class="primary" id="blendWhole">🔊 الكلمة</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="spell" class="lesson-view card" aria-labelledby="spellTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">5 · من الكلمة إلى الأصوات</p>
+            <h2 id="spellTitle">التهجئة والتجزئة</h2>
+          </div>
+        </div>
+        <div class="spell-stage">
+          <button class="word-card" id="spellWord">كَتَبَ</button>
+          <p>رتّب المقاطع لتكوين الكلمة.</p>
+          <div id="spellSlots" class="spell-slots"></div>
+          <div id="spellPool" class="spell-pool"></div>
+          <div class="center-actions">
+            <button class="secondary" id="resetSpell">إعادة</button>
+            <button class="primary" id="checkSpell">تحقق</button>
+          </div>
+          <p class="feedback" id="spellFeedback" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="card compact-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">متابعة الإتقان</p>
+            <h2>تقدّم الحرف ب</h2>
+          </div>
+          <button id="resetProgress" class="text-btn">تصفير التقدم</button>
+        </div>
+        <div class="mastery-grid" id="masteryGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">مختبر الصوت</p>
+          <h2>إعدادات Text-to-Speech</h2>
+        </div>
+        <button class="icon-btn" value="cancel" aria-label="إغلاق">✕</button>
+      </div>
+
+      <label>الصوت العربي
+        <select id="voiceSelect"></select>
+      </label>
+
+      <label>سرعة النطق <span id="rateLabel">0.78</span>
+        <input id="rateInput" type="range" min="0.55" max="1.05" step="0.01" value="0.78" />
+      </label>
+
+      <div class="speech-lab">
+        <p>اختبر النطق على جهازك:</p>
+        <div class="lab-buttons">
+          <button type="button" data-say="بَ">بَ</button>
+          <button type="button" data-say="بُ">بُ</button>
+          <button type="button" data-say="بِ">بِ</button>
+          <button type="button" data-say="بَا">بَا</button>
+          <button type="button" data-say="بُو">بُو</button>
+          <button type="button" data-say="بِي">بِي</button>
+          <button type="button" data-say="كَتَبَ">كَتَبَ</button>
+          <button type="button" data-say="كِتَابٌ">كِتَابٌ</button>
+        </div>
+      </div>
+      <p class="hint">يُفضَّل تجربة أكثر من صوت عربي؛ جودة النطق تختلف باختلاف الصوت والجهاز.</p>
+    </form>
+  </dialog>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
