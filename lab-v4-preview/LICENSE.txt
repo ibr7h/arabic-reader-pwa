@@ -1,0 +1,11 @@
+Copyright © 2026 Ibrahim Alneami — All Rights Reserved
+
+This software, its educational content, interface, visual assets, source code, and compiled/distributed forms are proprietary.
+
+No permission is granted to copy, modify for redistribution, sublicense, sell, resell, commercially distribute, or offer this software as part of a paid product or service without prior written authorization from the copyright owner.
+
+Commercial resale or redistribution requires a separate written commercial license from Ibrahim Alneami and may require payment of an agreed licensing fee.
+
+Viewing the source code in a public repository does not grant an open-source license or commercial redistribution rights.
+
+For licensing requests, obtain written permission from the copyright owner before distribution or resale.

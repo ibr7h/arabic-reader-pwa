@@ -1,0 +1,532 @@
+* {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Arabic', 'Geeza Pro', Arial, sans-serif;
+      touch-action: manipulation;
+      background: #e2e8f0;
+      letter-spacing: 0.01em;
+    }
+
+    /* تبديل فئات الخطوط التفاعلية المخصصة للأطفال والمدرسة */
+    body.font-baloo, body.font-baloo .foam-glyph, body.font-baloo input, body.font-baloo select, body.font-baloo button {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Arabic', 'Geeza Pro', Arial, sans-serif !important;
+    }
+    body.font-marhey, body.font-marhey .foam-glyph, body.font-marhey input, body.font-marhey select, body.font-marhey button {
+      font-family: 'Geeza Pro', 'SF Arabic', Arial, sans-serif !important;
+    }
+    body.font-lalezar, body.font-lalezar .foam-glyph, body.font-lalezar input, body.font-lalezar select, body.font-lalezar button {
+      font-family: Damascus, 'Geeza Pro', Arial, sans-serif !important;
+    }
+    body.font-changa, body.font-changa .foam-glyph, body.font-changa input, body.font-changa select, body.font-changa button {
+      font-family: Tahoma, Arial, 'Geeza Pro', sans-serif !important;
+    }
+    body.font-naskh, body.font-naskh .foam-glyph, body.font-naskh input, body.font-naskh select, body.font-naskh button {
+      font-family: 'Geeza Pro', 'Traditional Arabic', serif !important;
+    }
+    body.font-cairo, body.font-cairo .foam-glyph, body.font-cairo input, body.font-cairo select, body.font-cairo button {
+      font-family: Arial, Tahoma, 'Geeza Pro', sans-serif !important;
+    }
+    body.font-readex, body.font-readex .foam-glyph, body.font-readex input, body.font-readex select, body.font-readex button {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'SF Arabic', Arial, sans-serif !important;
+    }
+    body.font-tajawal, body.font-tajawal .foam-glyph, body.font-tajawal input, body.font-tajawal select, body.font-tajawal button {
+      font-family: Tahoma, Arial, 'Geeza Pro', sans-serif !important;
+    }
+    body.font-amiri, body.font-amiri .foam-glyph, body.font-amiri input, body.font-amiri select, body.font-amiri button {
+      font-family: 'Geeza Pro', 'Traditional Arabic', serif !important;
+    }
+    body.font-ruqaa, body.font-ruqaa .foam-glyph, body.font-ruqaa input, body.font-ruqaa select, body.font-ruqaa button {
+      font-family: Damascus, 'Geeza Pro', 'Traditional Arabic', serif !important;
+    }
+
+    /* حروف فوم مفرغة تماماً بدون أي إطار أو مربع خلفي - مطابقة لقطع الفوم الأصلية */
+    .foam-glyph {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-weight: 800;
+      line-height: 1.1;
+      cursor: grab;
+      user-select: none;
+      position: relative;
+      transition: transform 0.12s ease, filter 0.12s ease;
+      /* أذرع الاتصال تتراكب طبيعياً دون فواصل */
+      margin: 0 -1px;
+    }
+    .foam-glyph:active {
+      transform: translateY(3px) scale(0.97);
+      cursor: grabbing;
+    }
+
+    /* محاكاة سماكة الفوم (EVA Foam Extrusion) متعدد الطبقات لكل لون */
+    .glyph-purple {
+      color: #8b5cf6;
+      text-shadow: 
+        0 1px 0 #7c3aed,
+        0 2px 0 #6d28d9,
+        0 3px 0 #5b21b6,
+        0 4px 0 #4c1d95,
+        0 5px 0 #2e1065,
+        0 8px 10px rgba(0, 0, 0, 0.28);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.18));
+    }
+    .glyph-green {
+      color: #10b981;
+      text-shadow: 
+        0 1px 0 #059669,
+        0 2px 0 #047857,
+        0 3px 0 #065f46,
+        0 4px 0 #064e3b,
+        0 5px 0 #022c22,
+        0 8px 10px rgba(0, 0, 0, 0.28);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.18));
+    }
+    .glyph-blue {
+      color: #3b82f6;
+      text-shadow: 
+        0 1px 0 #2563eb,
+        0 2px 0 #1d4ed8,
+        0 3px 0 #1e40af,
+        0 4px 0 #1e3a8a,
+        0 5px 0 #172554,
+        0 8px 10px rgba(0, 0, 0, 0.28);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.18));
+    }
+    .glyph-red {
+      color: #ef4444;
+      text-shadow: 
+        0 1px 0 #dc2626,
+        0 2px 0 #b91c1c,
+        0 3px 0 #991b1b,
+        0 4px 0 #7f1d1d,
+        0 5px 0 #450a0a,
+        0 8px 10px rgba(0, 0, 0, 0.28);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.18));
+    }
+
+    /* الحركات الفوم الحمراء المفرغة */
+    .glyph-haraka {
+      color: #e11d48;
+      text-shadow: 
+        0 1px 0 #be123c,
+        0 2px 0 #9f1239,
+        0 3px 0 #881337,
+        0 5px 6px rgba(0, 0, 0, 0.25);
+      filter: drop-shadow(0 3px 2px rgba(0,0,0,0.2));
+    }
+
+    /* Whiteboard frame realistic texture */
+    .whiteboard-frame {
+      background: #f8fafc;
+      border: 10px solid #94a3b8;
+      border-radius: 24px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.06), 0 12px 25px -4px rgba(0, 0, 0, 0.15);
+      background-image: 
+        linear-gradient(to right, rgba(203, 213, 225, 0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(203, 213, 225, 0.2) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Lined handwriting paper guide */
+    .lined-sheet {
+      background: #ffffff;
+      background-image: linear-gradient(#e2e8f0 1.5px, transparent 1.5px);
+      background-size: 100% 28px;
+      line-height: 28px;
+    }
+
+    /* Freeform Magnetic Board Styling */
+    .magnetic-canvas-area {
+      position: relative;
+      touch-action: none;
+      user-select: none;
+      overflow: hidden;
+      min-height: 380px;
+      background: #f8fafc;
+      background-image: 
+        linear-gradient(to right, rgba(203, 213, 225, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(203, 213, 225, 0.25) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .board-baseline {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background: rgba(239, 68, 68, 0.35);
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .board-baseline::after {
+      content: 'سطر الكتابة والارتكاز';
+      position: absolute;
+      left: 8px;
+      top: -18px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #ef4444;
+      opacity: 0.6;
+    }
+    .free-foam-piece {
+      position: absolute;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      z-index: 10;
+      transition: transform 0.08s ease, filter 0.08s ease;
+      will-change: transform, left, top;
+    }
+    .free-foam-piece.is-dragging {
+      cursor: grabbing;
+      z-index: 100 !important;
+      transform: scale(1.12) rotate(-2deg);
+      filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.35)) !important;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+
+/* Local lightweight confetti used by the offline build */
+.confetti-lite-particle {
+  position: fixed;
+  z-index: 99999;
+  width: 10px;
+  height: 14px;
+  border-radius: 3px;
+  pointer-events: none;
+  animation: confetti-lite-fall var(--fall-ms, 1300ms) cubic-bezier(.18,.75,.32,1) forwards;
+}
+@keyframes confetti-lite-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--dx, 0px), var(--dy, 420px), 0) rotate(var(--rot, 720deg)); opacity: 0; }
+}
+
+/* ================================================================
+   V3 board controls, selection, multi-word preview and harakat
+   ================================================================ */
+.board-word-tools {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+  padding: .45rem .55rem;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
+  border-radius: .9rem;
+}
+.board-word-tools label { font-size: .72rem; font-weight: 800; color: #075985; }
+.board-word-tools input {
+  flex: 1 1 170px;
+  min-width: 130px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: .7rem;
+  padding: .38rem .65rem;
+  font: inherit;
+  font-size: .78rem;
+  outline: none;
+  user-select: text;
+}
+.board-word-tools input:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(14,165,233,.13); }
+.board-word-tools button,
+.board-selection-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: .7rem;
+  padding: .36rem .65rem;
+  font-size: .72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.board-word-tools button { background: #0284c7; border-color: #0284c7; color: #fff; }
+.board-selection-btn:hover { background: #f1f5f9; }
+.board-selection-btn.danger { color: #be123c; border-color: #fecdd3; background: #fff1f2; }
+.selection-count-chip {
+  font-size: .68rem;
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: .12rem .48rem;
+  border-radius: 999px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.letter-order-control { display: inline-flex; align-items: center; gap: .25rem; }
+.letter-order-control label { font-size: .62rem; font-weight: 800; color: #64748b; }
+.letter-order-control select {
+  border: 1px solid #cbd5e1;
+  border-radius: .6rem;
+  background: #fff;
+  padding: .26rem .45rem;
+  font: inherit;
+  font-size: .67rem;
+  font-weight: 800;
+  color: #334155;
+  outline: none;
+}
+.haraka-toolbar-head { display: flex; align-items: center; justify-content: space-between; gap: .4rem; flex-wrap: wrap; }
+.clear-haraka-btn {
+  border: 1px solid #fda4af;
+  background: #fff;
+  color: #be123c;
+  border-radius: .55rem;
+  padding: .18rem .48rem;
+  font-size: .62rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.haraka-target-label {
+  margin-top: .3rem;
+  padding: .25rem .45rem;
+  border-radius: .55rem;
+  background: rgba(255,255,255,.75);
+  border: 1px dashed #fda4af;
+  color: #9f1239;
+  font-size: .66rem;
+  font-weight: 800;
+  text-align: center;
+}
+.board-word-preview { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.board-preview-empty { color: #94a3b8; font-weight: 800; }
+.board-word-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .32rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: .2rem .55rem;
+  font-size: .92rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.board-word-chip span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: .58rem;
+}
+.free-foam-piece { border-radius: .8rem; padding: .08em .12em; }
+.free-foam-piece.is-selected {
+  outline: 3px solid #f59e0b;
+  outline-offset: 5px;
+  background: rgba(255,251,235,.45) !important;
+}
+.foam-piece-glyph { position: relative; display: inline-block; min-width: .72em; }
+.foam-mark-overlay {
+  position: absolute;
+  left: var(--mark-anchor, 50%);
+  transform: translateX(-50%);
+  color: #e11d48;
+  font-size: .48em;
+  line-height: 1;
+  font-weight: 900;
+  text-shadow: 0 1px 0 #be123c, 0 2px 2px rgba(0,0,0,.18);
+  pointer-events: none;
+  z-index: 4;
+}
+.foam-mark-overlay.mark-top { top: -.48em; }
+.foam-mark-overlay.mark-shadda { top: -.38em; font-size: .43em; }
+.foam-mark-overlay.mark-top.mark-with-shadda { top: -.72em; font-size: .39em; }
+.foam-mark-overlay.mark-bottom { bottom: -.38em; }
+.piece-delete-btn {
+  position: absolute;
+  top: -.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 0;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,.88);
+  color: #fff;
+  font-size: .62rem;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,.2);
+  z-index: 6;
+}
+.free-foam-piece:hover .piece-delete-btn,
+.free-foam-piece.is-selected .piece-delete-btn { display: flex; }
+#interactiveCanvas { touch-action: none; }
+
+@media (max-width: 640px) {
+  .letter-order-control { width: 100%; justify-content: flex-end; }
+  .board-word-tools { align-items: stretch; }
+  .board-word-tools button { flex: 1 1 auto; }
+  .board-word-chip { font-size: .78rem; }
+  .foam-mark-overlay.mark-top { top: -.42em; }
+  .foam-mark-overlay.mark-bottom { bottom: -.34em; }
+}
+.whiteboard-size-control {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .25rem .5rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: .75rem;
+}
+.whiteboard-size-control label,
+.whiteboard-size-control span { font-size: .65rem; font-weight: 800; color: #475569; white-space: nowrap; }
+.whiteboard-size-control input { width: 100px; accent-color: #2563eb; }
+.foam-mark-overlay {
+  width: .42em;
+  height: .32em;
+  display: block;
+}
+.foam-mark-overlay svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.foam-mark-overlay.mark-top { top: -.36em; }
+.foam-mark-overlay.mark-shadda { top: -.31em; width: .46em; height: .34em; }
+.foam-mark-overlay.mark-top.mark-with-shadda { top: -.59em; width: .36em; height: .26em; }
+.foam-mark-overlay.mark-bottom { bottom: -.23em; }
+
+/* ================================================================
+   V4 touch fixes, alif variants, board scaling, larger harakat, rights
+   ================================================================ */
+.board-scale-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  padding: .15rem;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: .7rem;
+}
+.board-scale-tools button {
+  min-width: 2.15rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: .5rem;
+  background: #fff;
+  color: #334155;
+  font-size: .7rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.board-scale-tools button:hover { background: #e2e8f0; }
+#boardLetterScaleValue { min-width: 3.2rem; color: #7c3aed; }
+.board-tap-hint {
+  font-size: .58rem;
+  font-weight: 800;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 999px;
+  padding: .12rem .45rem;
+  white-space: nowrap;
+}
+.alif-variants-bar {
+  margin-top: .45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  padding: .35rem .45rem;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: .75rem;
+}
+.alif-variants-bar.hidden { display: none; }
+.alif-variants-label { font-size: .65rem; color: #9a3412; font-weight: 900; }
+.alif-variant-btn {
+  min-width: 2rem;
+  height: 2rem;
+  border: 1px solid #fed7aa;
+  border-radius: .55rem;
+  background: #fff;
+  color: #7c2d12;
+  font-size: 1.15rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.alif-variant-btn.active { background: #fb923c; border-color: #f97316; color: #fff; }
+
+/* Make diacritics visibly proportional to the foam letters. */
+.foam-mark-overlay {
+  width: .64em;
+  height: .48em;
+  font-size: .64em;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,.16));
+}
+.foam-mark-overlay.mark-top { top: -.48em; }
+.foam-mark-overlay.mark-shadda { top: -.42em; width: .68em; height: .48em; }
+.foam-mark-overlay.mark-top.mark-with-shadda { top: -.80em; width: .58em; height: .42em; }
+.foam-mark-overlay.mark-bottom { bottom: -.38em; }
+
+#whiteboardOverlayModal {
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+#canvasContainer {
+  position: relative;
+  min-height: 360px;
+  height: min(62dvh, 620px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+#interactiveCanvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  touch-action: none !important;
+  -ms-touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app-rights-footer {
+  margin-top: 1rem;
+  padding: .8rem 1rem;
+  border-top: 1px solid #cbd5e1;
+  color: #475569;
+  text-align: center;
+  font-size: .7rem;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+.app-rights-footer strong { color: #0f172a; font-size: .75rem; }
+
+@media (max-width: 640px) {
+  .board-tap-hint { width: 100%; text-align: center; white-space: normal; }
+  .board-scale-tools { order: 3; }
+  .foam-mark-overlay { width: .70em; height: .52em; }
+  .foam-mark-overlay.mark-top { top: -.50em; }
+  .foam-mark-overlay.mark-bottom { bottom: -.40em; }
+  #whiteboardOverlayModal { padding: .35rem; }
+  #whiteboardOverlayModal > div {
+    max-height: 96dvh;
+    height: 96dvh;
+    border-radius: 1rem;
+  }
+  #canvasContainer {
+    min-height: 250px;
+    height: auto;
+    flex: 1 1 auto;
+  }
+  .whiteboard-size-control { width: 100%; justify-content: center; }
+  .whiteboard-size-control input { flex: 1; max-width: 180px; }
+}
