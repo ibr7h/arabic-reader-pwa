@@ -19,8 +19,18 @@ jobs:
           set -euo pipefail
           rm -rf lab-v4-preview
           mkdir -p lab-v4-preview
-          cat lab-v4-build/bundle/part-*.txt > /tmp/v4.b64
-          base64 --decode --ignore-garbage /tmp/v4.b64 > /tmp/v4.tar.gz
+          cat \
+            lab-v4-build/bundle/part-01.txt \
+            lab-v4-build/bundle/part-02.txt \
+            lab-v4-build/bundle/part-03.txt \
+            lab-v4-build/bundle/part-04.txt \
+            lab-v4-build/bundle/part-05.txt \
+            lab-v4-build/bundle/part-06q-0.txt \
+            lab-v4-build/bundle/part-06q-1.txt \
+            lab-v4-build/bundle/part-06q-2.txt \
+            lab-v4-build/bundle/part-06q-3.txt \
+            lab-v4-build/bundle/part-07.txt > /tmp/v4.b64
+          base64 --decode /tmp/v4.b64 > /tmp/v4.tar.gz
           gzip -t /tmp/v4.tar.gz
           tar -xzf /tmp/v4.tar.gz -C lab-v4-preview
           test -f lab-v4-preview/index.html
