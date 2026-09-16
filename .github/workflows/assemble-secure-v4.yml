@@ -20,7 +20,8 @@ jobs:
           rm -rf lab-v4-preview
           mkdir -p lab-v4-preview
           cat lab-v4-build/bundle/part-*.txt > /tmp/v4.b64
-          base64 -d /tmp/v4.b64 > /tmp/v4.tar.gz
+          base64 --decode --ignore-garbage /tmp/v4.b64 > /tmp/v4.tar.gz
+          gzip -t /tmp/v4.tar.gz
           tar -xzf /tmp/v4.tar.gz -C lab-v4-preview
           test -f lab-v4-preview/index.html
           test -f lab-v4-preview/assets/js/app.js
