@@ -1,9 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.7";
+  const VERSION="2.0.0-alpha.8";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
+  const SUCCESS_SPOKEN="أَحْسَنْتَ";
   const STORAGE_KEY="hurufi-v2:golden-meem";
   const FONT_KEY="hurufi-v2:learning-font";
   const VOICE_KEY="hurufi-v2:voice";
@@ -68,6 +69,9 @@
     identifyScore:0,
     identifyAnswered:false,
     identifyChoice:null,
+    identifyOrder:null,
+    challengeOrder:null,
+    lastAnswerIndex:{},
     visitedWords:new Set(),
     trainIndex:0,
     trainScore:0,
@@ -78,6 +82,57 @@
     challengeAnswered:false,
     challengeChoice:null
   };
+
+  function shuffledCopy(values){
+    const arr=[...values];
+    for(let i=arr.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function shuffledWithMovedAnswer(values,answer,key){
+    const source=[...values];
+    if(source.length<2)return source;
+
+    const previous=state.lastAnswerIndex[key];
+    let result=shuffledCopy(source);
+    let tries=0;
+
+    while(
+      previous!==undefined &&
+      result.findIndex(v=>String(v)===String(answer))===previous &&
+      tries<12
+    ){
+      result=shuffledCopy(source);
+      tries++;
+    }
+
+    const current=result.findIndex(v=>String(v)===String(answer));
+    if(current>=0)state.lastAnswerIndex[key]=current;
+    return result;
+  }
+
+  function identifyOptions(){
+    if(!Array.isArray(state.identifyOrder)){
+      const base=IDENTIFY_ROUNDS[state.identifyIndex];
+      state.identifyOrder=shuffledWithMovedAnswer(base,"م","identify-"+state.identifyIndex);
+    }
+    return state.identifyOrder;
+  }
+
+  function challengeOptions(q){
+    if(!Array.isArray(q.options))return [];
+    if(!Array.isArray(state.challengeOrder)){
+      state.challengeOrder=shuffledWithMovedAnswer(
+        q.options,
+        q.answer,
+        "challenge-"+state.challengeIndex
+      );
+    }
+    return state.challengeOrder;
+  }
 
   function loadLearningFont(){
     try{
@@ -380,7 +435,7 @@
   }
 
   function identifyView(){
-    const choices=IDENTIFY_ROUNDS[state.identifyIndex];
+    const choices=identifyOptions();
     return `<section class="card lesson-card">
       <span class="eyebrow">١ · أميّز الحرف</span>
       <h2>أين حرف م؟</h2>
@@ -485,7 +540,7 @@
   function challengeView(){
     const q=CHALLENGE[state.challengeIndex];
     if(q.type==="identify"){
-      return challengeShell(q,`<div class="identify-grid challenge-letter-grid">${q.options.map(v=>challengeButton(v,v,"letter")).join("")}</div>`);
+      return challengeShell(q,`<div class="identify-grid challenge-letter-grid">${challengeOptions(q).map(v=>challengeButton(v,v,"letter")).join("")}</div>`);
     }
     if(q.type==="position"){
       const ex=EXAMPLES[q.example];
@@ -493,7 +548,7 @@
       return challengeShell(qq,`<div class="train-word big-word">${highlightExample(ex)}</div>${challengeTrain(ex.position)}`);
     }
     if(q.type==="connection"){
-      return challengeShell(q,`<div class="challenge-options">${q.options.map(idx=>{
+      return challengeShell(q,`<div class="challenge-options">${challengeOptions(q).map(idx=>{
         const ex=EXAMPLES[idx];
         return challengeButton(String(idx),highlightExample(ex),"word",true);
       }).join("")}</div>`);
@@ -580,7 +635,7 @@
     screen.querySelectorAll("[data-identify]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.identifyAnswered)return;
       state.identifyAnswered=true;state.identifyChoice=btn.dataset.identify;
-      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak("أَحْسَنْتَ. هٰذَا حَرْفُ مِيمْ.");}
+      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak(SUCCESS_SPOKEN+". هٰذَا حَرْفُ مِيمْ.");}
       else speak("هٰذَا هُوَ حَرْفُ مِيمْ.");
       render();save();
     }));
@@ -593,7 +648,7 @@
       if(state.trainAnswered)return;
       const ex=EXAMPLES[state.trainIndex];
       state.trainAnswered=true;state.trainChoice=btn.dataset.train;
-      if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak("أحسنت.");}
+      if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
       else speak(`حرف ميم في ${ex.label}.`);
       render();save();
     }));
@@ -606,7 +661,7 @@
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.challengeAnswered)return;
       state.challengeAnswered=true;state.challengeChoice=btn.dataset.challenge;
-      if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak("أحسنت.");}
+      if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
       else speak("حاول أن تلاحظ حرف ميم.");
       render();save();
     }));
@@ -615,7 +670,7 @@
       const a=btn.dataset.action;
       if(a==="begin"){resetStageData();setStage("identify",{speakText:"أَيْنَ حَرْفُ مِيمْ؟"});}
       if(a==="identify-next"){
-        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ مِيمْ؟"),120);}
+        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ مِيمْ؟"),120);}
         else setStage("words",{speakText:"اضغط الكلمات واسمعها. الحرف الأحمر هو حرف ميم."});
       }
       if(a==="words-next")setStage("train",{speakText:"أين حرف ميم الأحمر؟ اضغط العربة المناسبة."});
@@ -623,18 +678,18 @@
         if(state.trainIndex<2){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speakPositionPrompt(EXAMPLES[state.trainIndex],{withInstruction:true}),120);}
         else setStage("joining",{speakText:"الآن نرى كيف يتصل حرف ميم داخل الكلمات."});
       }
-      if(a==="joining-next"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
+      if(a==="joining-next"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
       if(a==="challenge-next"){
-        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});else speak(q.spoken);},120);}
+        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});else speak(q.spoken);},120);}
         else{setStage("finish");celebrate();}
       }
-      if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
+      if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
       if(a==="restart-all"){localStorage.removeItem(STORAGE_KEY);location.reload();}
     }));
   }
 
   function resetStageData(){
-    state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;
+    state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;
     state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;
   }
 
@@ -675,6 +730,8 @@
       state.trainScore=Number(p.trainScore)||0;
       state.challengeIndex=Math.max(0,Math.min(CHALLENGE.length-1,Number(p.challengeIndex)||0));
       state.challengeScore=Number(p.challengeScore)||0;
+      state.identifyOrder=null;
+      state.challengeOrder=null;
     }catch{}
   }
 
