@@ -60,6 +60,7 @@
   const bottomNav = document.getElementById("bottomNav");
   const fontBtn = document.getElementById("fontBtn");
   const fontPanel = document.getElementById("fontPanel");
+  const fontClose = document.querySelector(".font-close");
 
   function loadLearningFont(){
     try{
@@ -728,6 +729,7 @@
       fontPanel.hidden=!fontPanel.hidden;
       if(!fontPanel.hidden) applyLearningFont(state.learningFont);
     });
+    if(fontClose) fontClose.addEventListener("click",()=>{fontPanel.hidden=true;});
     fontPanel.querySelectorAll("[data-font-choice]").forEach(btn=>{
       btn.addEventListener("click",()=>{
         applyLearningFont(btn.dataset.fontChoice);
