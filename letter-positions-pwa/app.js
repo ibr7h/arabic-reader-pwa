@@ -198,6 +198,15 @@
     ];
   }
 
+  function uniqueFormsFor(item){
+    const seen=new Set();
+    return formsFor(item).filter(([,shape])=>{
+      if(seen.has(shape)) return false;
+      seen.add(shape);
+      return true;
+    }).map(([,shape],index)=>({shape,label:"شكل "+["١","٢","٣","٤"][index]}));
+  }
+
   function speak(text){
     if(!state.sound || !("speechSynthesis" in window)) return;
     try{
@@ -324,12 +333,13 @@
         <div><button class="btn soft speak-btn" data-action="speak-letter">🔊 اسمع الحرف</button></div>
       </section>
 
-      <div class="section-title"><h2>أشكال الحرف</h2><small>لاحظ تغيّر الشكل</small></div>
+      <div class="section-title"><h2>أشكال قد أراها للحرف</h2><small>نتعرّف على الشكل فقط</small></div>
+      <div class="forms-note">قد يظهر الشكل نفسه في أكثر من مكان. <strong>لا نعرف موقع الحرف من شكله وحده.</strong></div>
       <div class="forms-grid">
-        ${forms.map(([label,shape]) => `<div class="form-card"><small>${label}</small><strong>${shape}</strong></div>`).join("")}
+        ${uniqueFormsFor(item).map(form => `<div class="form-card"><small>${form.label}</small><strong>${form.shape}</strong></div>`).join("")}
       </div>
 
-      <div class="section-title"><h2>الحرف في الكلمات</h2><small>أول · وسط · آخر</small></div>
+      <div class="section-title"><h2>الحرف في الكلمات</h2><small>المكان داخل الكلمة</small></div>
       <div class="examples">
         ${item.words.map((word,i) => `<div class="example-row">
           <span>${["في البداية","في الوسط","في النهاية"][i]}</span>
