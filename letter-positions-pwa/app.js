@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.6.3";
+  const APP_VERSION = "1.6.4";
   const STORE_KEY = "hurufi-progress:v1";
   const FONT_KEY = "hurufi:learning-font";
   const FONT_OPTIONS = ["geeza","sf","naskh","baloo","marhey","lalezar","changa","school","cairo","readex"];
