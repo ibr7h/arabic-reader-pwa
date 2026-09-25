@@ -464,7 +464,7 @@
           return `<button class="${cls}" data-identify="${ch}" ${state.identifyAnswered?"disabled":""}>${ch}</button>`;
         }).join("")}
       </div>
-      ${state.identifyAnswered?`<div class="feedback ${state.identifyChoice==="م"?"good":"bad"}">${state.identifyChoice==="م"?"أحسنت! هذا م 🌟":"هذا هو حرف ميم: م"}</div>
+      ${state.identifyAnswered?`<div class="feedback ${state.identifyChoice==="م"?"good":"bad"}">${state.identifyChoice==="م"?"أَحْسَنْتَ! هذا م 🌟":"هذا هو حرف ميم: م"}</div>
       <div class="actions"><button class="btn primary full" data-action="identify-next">${state.identifyIndex===IDENTIFY_ROUNDS.length-1?"شاهد م في الكلمات":"التالي"}</button></div>`:""}
     </section>`;
   }
@@ -514,7 +514,7 @@
       <div class="train-word big-word">${highlightExample(ex)}</div>
       <div class="train-hint">اضغط العربة التي تمثل مكان م في الكلمة</div>
       ${trainMarkup(state.trainAnswered,state.trainChoice,ex.position,true)}
-      ${state.trainAnswered?`<div class="feedback ${state.trainChoice===ex.position?"good":"bad"}">${state.trainChoice===ex.position?"أحسنت! 🌟":`حرف م في ${ex.label} من كلمة ${ex.word}`}</div>
+      ${state.trainAnswered?`<div class="feedback ${state.trainChoice===ex.position?"good":"bad"}">${state.trainChoice===ex.position?"أَحْسَنْتَ! 🌟":`حرف م في ${ex.label} من كلمة ${ex.word}`}</div>
       <div class="actions"><button class="btn primary full" data-action="train-next">${state.trainIndex===2?"الآن: كيف يتصل م؟":"الكلمة التالية"}</button></div>`:""}
     </section>`;
   }
@@ -601,7 +601,7 @@
       ${audioButton(spoken)}
       ${dots(state.challengeIndex,CHALLENGE.length)}
       ${body}
-      ${state.challengeAnswered?`<div class="feedback ${isCurrentChallengeCorrect()?"good":"bad"}">${isCurrentChallengeCorrect()?"أحسنت! 🌟":"جرّب أن تلاحظ الحرف الأحمر ومكانه."}</div>
+      ${state.challengeAnswered?`<div class="feedback ${isCurrentChallengeCorrect()?"good":"bad"}">${isCurrentChallengeCorrect()?"أَحْسَنْتَ! 🌟":"جرّب أن تلاحظ الحرف الأحمر ومكانه."}</div>
       <div class="actions"><button class="btn primary full" data-action="challenge-next">${state.challengeIndex===CHALLENGE.length-1?"النتيجة":"السؤال التالي"}</button></div>`:""}
     </section>`;
   }
@@ -619,7 +619,7 @@
     return `<section class="card lesson-card">
       <span class="eyebrow">اكتمل الدرس الذهبي</span>
       <div class="finish-star">${pct>=80?"🌟":"🌱"}</div>
-      <h1>${pct>=80?"أحسنت في حرف م!":"تقدم جميل في حرف م"}</h1>
+      <h1>${pct>=80?"أَحْسَنْتَ في حرف م!":"تقدم جميل في حرف م"}</h1>
       <div class="score">${state.challengeScore} / ${total}</div>
       <p>${pct>=80?"أصبحت النسخة جاهزة لتقييمنا قبل تعميمها على بقية الحروف.":"يمكن إعادة التحدي مرة أخرى قبل تعميم النموذج."}</p>
       <div class="actions">
