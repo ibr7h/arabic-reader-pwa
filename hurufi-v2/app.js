@@ -873,6 +873,7 @@
   }
 
   function practiceOptions(q){
+    if(q.type==="position-practice")return q.options;
     if(!Array.isArray(q._order)){
       q._order=shuffledWithMovedAnswer(q.options,q.answer,"practice-"+q.type+"-"+q.answer);
     }
@@ -935,8 +936,11 @@
     if(q.type==="position-practice"){
       const ex=q.example;
       return `${trainWordTiles(ex)}
-        <div class="practice-position-options">
-          ${practiceOptions(q).map(pos=>practiceChoiceButton(q,pos,{start:"البداية",middle:"الوسط",end:"النهاية"}[pos],"position")).join("")}
+        <div class="practice-mini-train">
+          <div class="practice-mini-engine" aria-hidden="true">🚂</div>
+          <div class="practice-position-options">
+            ${practiceOptions(q).map(pos=>practiceChoiceButton(q,pos,{start:"البداية",middle:"الوسط",end:"النهاية"}[pos],"position")).join("")}
+          </div>
         </div>`;
     }
     if(q.type==="connection-practice"){
@@ -1169,6 +1173,36 @@
       state.challengeAnswered=true;state.challengeChoice=btn.dataset.challenge;
       if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
       else speak("حاول أن تلاحظ حرف ميم.");
+      render();save();
+    }));
+
+    screen.querySelectorAll("[data-practice-level]").forEach(btn=>btn.addEventListener("click",()=>{
+      const level=Number(btn.dataset.practiceLevel);
+      if(level<=state.practiceUnlocked)startPracticeLevel(level);
+    }));
+
+    screen.querySelectorAll("[data-practice-audio]").forEach(btn=>btn.addEventListener("click",()=>{
+      speakPracticeQuestion(currentPracticeQuestion());
+    }));
+
+    screen.querySelectorAll("[data-practice-choice]").forEach(btn=>btn.addEventListener("click",()=>{
+      if(state.practiceAnswered)return;
+      const q=currentPracticeQuestion();
+      if(!q)return;
+      state.practiceAnswered=true;
+      state.practiceChoice=btn.dataset.practiceChoice;
+      const correct=String(state.practiceChoice)===String(q.answer);
+      if(correct){
+        if(q.retryCount===0)state.practiceScore++;
+        celebrate();
+        speak(SUCCESS_SPOKEN+".");
+      }else{
+        speak("حَاوِلْ مَرَّةً أُخْرَى بَعْدَ قَلِيلٍ.");
+        if(state.practiceLevel<5 && q.retryCount<1){
+          const retry={...q,retryCount:q.retryCount+1,_order:null,id:q.id+"-retry"};
+          state.practiceQueue.push(retry);
+        }
+      }
       render();save();
     }));
 
