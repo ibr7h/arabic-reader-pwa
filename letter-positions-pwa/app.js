@@ -39,10 +39,23 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.6.2";
+  const APP_VERSION = "1.6.3";
   const STORE_KEY = "hurufi-progress:v1";
   const FONT_KEY = "hurufi:learning-font";
   const FONT_OPTIONS = ["geeza","sf","naskh","baloo","marhey","lalezar","changa","school","cairo","readex"];
+  const FONT_FAMILIES = {
+    geeza:"Geeza Pro",
+    sf:"SF Arabic",
+    naskh:"Noto Naskh Arabic",
+    baloo:"Baloo Bhaijaan 2",
+    marhey:"Marhey",
+    lalezar:"Lalezar",
+    changa:"Changa",
+    school:"Noto Naskh Arabic",
+    cairo:"Cairo",
+    readex:"Readex Pro"
+  };
+  const WEB_FONTS = new Set(["naskh","baloo","marhey","lalezar","changa","school","cairo","readex"]);
   const state = {
     screen:"home",
     previous:"home",
@@ -69,15 +82,64 @@
     }catch{return "geeza";}
   }
 
-  function applyLearningFont(font){
+  function setFontStatus(message,type=""){
+    const status=document.getElementById("fontStatus");
+    if(!status) return;
+    status.textContent=message||"";
+    status.className="font-status"+(type?" "+type:"");
+  }
+
+  async function ensureFontLoaded(font){
+    if(!WEB_FONTS.has(font) || !document.fonts) return true;
+    const family=FONT_FAMILIES[font];
+    try{
+      const load=document.fonts.load('600 64px "'+family+'"',"بتثجحخسشصضم");
+      const timeout=new Promise(resolve=>setTimeout(()=>resolve([]),6500));
+      const faces=await Promise.race([load,timeout]);
+      return Array.isArray(faces) && faces.length>0;
+    }catch{
+      return false;
+    }
+  }
+
+  async function applyLearningFont(font,{persist=true,showStatus=false}={}){
     const next=FONT_OPTIONS.includes(font)?font:"geeza";
+    const previous=state.learningFont;
+
+    if(showStatus){
+      setFontStatus("جارٍ تحميل الخط…","loading");
+      const tapped=document.querySelector('[data-font-choice="'+next+'"]');
+      if(tapped) tapped.classList.add("loading");
+    }
+
+    const loaded=await ensureFontLoaded(next);
+
+    document.querySelectorAll("[data-font-choice].loading").forEach(el=>el.classList.remove("loading"));
+
+    if(!loaded && WEB_FONTS.has(next)){
+      if(showStatus) setFontStatus("تعذر تحميل الخط الآن. بقي الخط السابق دون تغيير.","error");
+      state.learningFont=previous;
+      document.documentElement.dataset.learningFont=previous;
+      return false;
+    }
+
     state.learningFont=next;
     document.documentElement.dataset.learningFont=next;
-    try{localStorage.setItem(FONT_KEY,next);}catch{}
-    const current=document.querySelector('[data-font-choice].active');
-    if(current) current.classList.remove("active");
+    document.documentElement.style.setProperty("--font-refresh",Date.now());
+
+    if(persist){
+      try{localStorage.setItem(FONT_KEY,next);}catch{}
+    }
+
+    document.querySelectorAll("[data-font-choice].active").forEach(el=>el.classList.remove("active"));
     const selected=document.querySelector('[data-font-choice="'+next+'"]');
     if(selected) selected.classList.add("active");
+
+    if(showStatus){
+      setFontStatus("تم تطبيق الخط ✓","success");
+      setTimeout(()=>setFontStatus(""),1400);
+    }
+    return true;
   }
 
   function loadProgress(){
@@ -402,11 +464,11 @@
   }
 
   function joiningGlyph(item,state){
-    const forms=ARABIC_FORMS[item.letter] || [item.letter,item.letter,item.letter,item.letter];
-    if(state==="next") return forms[1];
-    if(state==="both") return forms[2];
-    if(state==="previous") return forms[3];
-    return forms[0];
+    const ch=item.letter;
+    if(state==="next") return ch+"\u200D";
+    if(state==="both") return "\u200D"+ch+"\u200D";
+    if(state==="previous") return "\u200D"+ch;
+    return ch;
   }
 
   function joiningDiagram(item,state,compact=false){
@@ -722,19 +784,26 @@
     }
   }
 
-  applyLearningFont(state.learningFont);
+  void applyLearningFont(state.learningFont,{persist:false,showStatus:false});
 
   if(fontBtn && fontPanel){
     fontBtn.addEventListener("click",()=>{
       fontPanel.hidden=!fontPanel.hidden;
-      if(!fontPanel.hidden) applyLearningFont(state.learningFont);
+      if(!fontPanel.hidden){
+        document.querySelectorAll("[data-font-choice].active").forEach(el=>el.classList.remove("active"));
+        const selected=document.querySelector('[data-font-choice="'+state.learningFont+'"]');
+        if(selected) selected.classList.add("active");
+        setFontStatus("");
+      }
     });
     if(fontClose) fontClose.addEventListener("click",()=>{fontPanel.hidden=true;});
     fontPanel.querySelectorAll("[data-font-choice]").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        applyLearningFont(btn.dataset.fontChoice);
-        fontPanel.hidden=true;
-        render();
+      btn.addEventListener("click",async()=>{
+        const ok=await applyLearningFont(btn.dataset.fontChoice,{persist:true,showStatus:true});
+        if(ok){
+          render();
+          window.setTimeout(()=>{fontPanel.hidden=true;},380);
+        }
       });
     });
     document.addEventListener("click",e=>{
