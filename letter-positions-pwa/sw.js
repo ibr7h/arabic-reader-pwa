@@ -1,4 +1,4 @@
-const CACHE = "hurufi-letter-positions-v3";
+const CACHE = "hurufi-letter-positions-v4";
 const CORE = [
   "./",
   "./index.html",
@@ -10,7 +10,7 @@ const CORE = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
 });
 
 self.addEventListener("activate", event => {
@@ -29,4 +29,9 @@ self.addEventListener("fetch", event => {
       return response;
     }).catch(() => caches.match("./index.html")))
   );
+});
+
+
+self.addEventListener("message", event => {
+  if(event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
