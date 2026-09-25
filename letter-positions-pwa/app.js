@@ -39,6 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
+  const APP_VERSION = "1.2.0";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -130,14 +131,33 @@
   }
 
   function highlight(word, letter){
-    const safe = escapeHTML(word);
-    const idx = safe.indexOf(letter);
-    if(idx < 0) return safe;
-    return safe.slice(0,idx) + '<span class="target">' + letter + '</span>' + safe.slice(idx+letter.length);
+    const chars=[...word];
+    const targetIndex=chars.indexOf(letter);
+    return chars.map((ch,index)=>{
+      const forms=ARABIC_FORMS[ch];
+      if(!forms) return escapeHTML(ch);
+      const prev=chars[index-1];
+      const next=chars[index+1];
+      const prevJoins=!!prev && joinsToNext(prev);
+      const joinsPrev=prevJoins;
+      const joinsNext=!!next && joinsToNext(ch);
+      const formIndex=joinsPrev && joinsNext ? 2 : joinsNext ? 1 : joinsPrev ? 3 : 0;
+      const glyph=forms[formIndex];
+      return index===targetIndex ? '<span class="target contextual-target">'+glyph+'</span>' : glyph;
+    }).join("");
+  }
+
+  function joinsToNext(ch){
+    const item=LETTERS.find(x=>x.letter===ch);
+    if(item) return item.joinsNext;
+    return !["ا","أ","إ","آ","د","ذ","ر","ز","و","ؤ","ة","ى"].includes(ch);
   }
 
   const ARABIC_FORMS = {
     "ا":["ﺍ","ﺍ","ﺎ","ﺎ"],
+    "أ":["ﺃ","ﺃ","ﺄ","ﺄ"],
+    "إ":["ﺇ","ﺇ","ﺈ","ﺈ"],
+    "آ":["ﺁ","ﺁ","ﺂ","ﺂ"],
     "ب":["ﺏ","ﺑ","ﺒ","ﺐ"],
     "ت":["ﺕ","ﺗ","ﺘ","ﺖ"],
     "ث":["ﺙ","ﺛ","ﺜ","ﺚ"],
@@ -163,6 +183,7 @@
     "م":["ﻡ","ﻣ","ﻤ","ﻢ"],
     "ن":["ﻥ","ﻧ","ﻨ","ﻦ"],
     "ه":["ﻩ","ﻫ","ﻬ","ﻪ"],
+    "ة":["ﺓ","ﺓ","ﺔ","ﺔ"],
     "و":["ﻭ","ﻭ","ﻮ","ﻮ"],
     "ي":["ﻱ","ﻳ","ﻴ","ﻲ"]
   };
@@ -547,9 +568,47 @@
   backBtn.addEventListener("click",()=>setScreen(state.previous||"home"));
   soundBtn.addEventListener("click",()=>{state.sound=!state.sound;if(!state.sound&&"speechSynthesis" in window)speechSynthesis.cancel();render();});
 
-  if("serviceWorker" in navigator){
-    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  function showUpdate(registration){
+    const bar=document.getElementById("updateBar");
+    const button=document.getElementById("updateNowBtn");
+    if(!bar || !button || !registration?.waiting) return;
+    bar.hidden=false;
+    button.onclick=()=>{
+      button.disabled=true;
+      button.textContent="جارٍ التحديث…";
+      registration.waiting.postMessage({type:"SKIP_WAITING"});
+    };
   }
 
+  function setupAppUpdates(){
+    if(!("serviceWorker" in navigator)) return;
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(refreshing) return;
+      refreshing=true;
+      location.reload();
+    });
+    window.addEventListener("load",async()=>{
+      try{
+        const registration=await navigator.serviceWorker.register("./sw.js");
+        if(registration.waiting) showUpdate(registration);
+        registration.addEventListener("updatefound",()=>{
+          const worker=registration.installing;
+          if(!worker) return;
+          worker.addEventListener("statechange",()=>{
+            if(worker.state==="installed" && navigator.serviceWorker.controller){
+              showUpdate(registration);
+            }
+          });
+        });
+        registration.update().catch(()=>{});
+        document.addEventListener("visibilitychange",()=>{
+          if(document.visibilityState==="visible") registration.update().catch(()=>{});
+        });
+      }catch{}
+    });
+  }
+
+  setupAppUpdates();
   render();
 })();
