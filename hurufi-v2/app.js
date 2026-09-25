@@ -1,10 +1,21 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.2";
+  const VERSION="2.0.0-alpha.3";
   const TARGET="م";
   const TARGET_SPOKEN="مِيم";
   const STORAGE_KEY="hurufi-v2:golden-meem";
+  const FONT_KEY="hurufi-v2:learning-font";
+  const FONT_OPTIONS=["school","baloo","marhey","cairo","readex","geeza"];
+  const FONT_FAMILIES={
+    school:"Noto Naskh Arabic",
+    baloo:"Baloo Bhaijaan 2",
+    marhey:"Marhey",
+    cairo:"Cairo",
+    readex:"Readex Pro",
+    geeza:"Geeza Pro"
+  };
+  const WEB_FONTS=new Set(["school","baloo","marhey","cairo","readex"]);
 
   const EXAMPLES=[
     {word:"موز", spoken:"مَوْز", targetIndex:0, position:"start", connection:"next", label:"البداية"},
@@ -33,10 +44,20 @@
   const soundBtn=document.getElementById("soundBtn");
   const progressFill=document.getElementById("progressFill");
   const toast=document.getElementById("toast");
+  const settingsBtn=document.getElementById("settingsBtn");
+  const settingsPanel=document.getElementById("settingsPanel");
+  const settingsClose=document.getElementById("settingsClose");
+  const fontStatus=document.getElementById("fontStatus");
+  const appVersionEl=document.getElementById("appVersion");
+  const updateBar=document.getElementById("updateBar");
+  const updateTitle=document.getElementById("updateTitle");
+  const updateStatus=document.getElementById("updateStatus");
+  const updateProgressFill=document.getElementById("updateProgressFill");
 
   const state={
     stage:"intro",
     sound:true,
+    learningFont:loadLearningFont(),
     identifyIndex:0,
     identifyScore:0,
     identifyAnswered:false,
@@ -51,6 +72,63 @@
     challengeAnswered:false,
     challengeChoice:null
   };
+
+  function loadLearningFont(){
+    try{
+      const saved=localStorage.getItem(FONT_KEY);
+      return FONT_OPTIONS.includes(saved)?saved:"school";
+    }catch{return "school";}
+  }
+
+  function setFontStatus(message,type=""){
+    if(!fontStatus)return;
+    fontStatus.textContent=message||"";
+    fontStatus.className="font-status"+(type?" "+type:"");
+  }
+
+  async function ensureFontLoaded(font){
+    if(!WEB_FONTS.has(font)||!document.fonts)return true;
+    const family=FONT_FAMILIES[font];
+    try{
+      const load=document.fonts.load('600 72px "'+family+'"',"مبسع");
+      const timeout=new Promise(resolve=>setTimeout(()=>resolve([]),6500));
+      const faces=await Promise.race([load,timeout]);
+      return Array.isArray(faces)&&faces.length>0;
+    }catch{return false;}
+  }
+
+  function markActiveFont(font){
+    document.querySelectorAll("[data-font].active").forEach(el=>el.classList.remove("active"));
+    const selected=document.querySelector('[data-font="'+font+'"]');
+    if(selected)selected.classList.add("active");
+  }
+
+  async function applyLearningFont(font,{persist=true,showStatus=false}={}){
+    const next=FONT_OPTIONS.includes(font)?font:"school";
+    const previous=state.learningFont;
+    if(showStatus){
+      setFontStatus("جارٍ تحميل الخط…","loading");
+      document.querySelector('[data-font="'+next+'"]')?.classList.add("loading");
+    }
+    const loaded=await ensureFontLoaded(next);
+    document.querySelectorAll("[data-font].loading").forEach(el=>el.classList.remove("loading"));
+    if(!loaded&&WEB_FONTS.has(next)){
+      state.learningFont=previous;
+      document.documentElement.dataset.learningFont=previous;
+      markActiveFont(previous);
+      if(showStatus)setFontStatus("تعذر تحميل الخط الآن. بقي الخط السابق.","error");
+      return false;
+    }
+    state.learningFont=next;
+    document.documentElement.dataset.learningFont=next;
+    markActiveFont(next);
+    if(persist){try{localStorage.setItem(FONT_KEY,next);}catch{}}
+    if(showStatus){
+      setFontStatus("تم تطبيق الخط ✓","success");
+      setTimeout(()=>setFontStatus(""),1300);
+    }
+    return true;
+  }
 
   function joinsToNext(ch){
     return !["ا","أ","إ","آ","د","ذ","ر","ز","و","ؤ","ة","ى"].includes(ch);
@@ -363,6 +441,7 @@
   }
 
   function render(){
+    document.body.dataset.stage=state.stage;
     progressFill.style.width=progress()+"%";
     backBtn.classList.toggle("hidden",state.stage==="intro");
     if(state.stage==="intro")screen.innerHTML=introView();
@@ -479,6 +558,24 @@
     }catch{}
   }
 
+  if(settingsBtn&&settingsPanel){
+    settingsBtn.addEventListener("click",()=>{
+      settingsPanel.hidden=false;
+      markActiveFont(state.learningFont);
+      setFontStatus("");
+    });
+    settingsClose?.addEventListener("click",()=>{settingsPanel.hidden=true;});
+    settingsPanel.addEventListener("click",e=>{
+      if(e.target===settingsPanel)settingsPanel.hidden=true;
+    });
+    settingsPanel.querySelectorAll("[data-font]").forEach(btn=>{
+      btn.addEventListener("click",async()=>{
+        const ok=await applyLearningFont(btn.dataset.font,{persist:true,showStatus:true});
+        if(ok)setTimeout(()=>{settingsPanel.hidden=true;},360);
+      });
+    });
+  }
+
   backBtn.addEventListener("click",goBack);
   soundBtn.addEventListener("click",()=>{
     state.sound=!state.sound;
@@ -486,16 +583,105 @@
     if(!state.sound&&"speechSynthesis" in window)speechSynthesis.cancel();
   });
 
+  function versionParts(v){
+    const m=String(v).match(/^(\d+)\.(\d+)\.(\d+)(?:-alpha\.(\d+))?$/);
+    if(!m)return [0,0,0,0];
+    return [Number(m[1]),Number(m[2]),Number(m[3]),m[4]===undefined?999:Number(m[4])];
+  }
+
+  function compareVersions(a,b){
+    const A=versionParts(a),B=versionParts(b);
+    for(let i=0;i<A.length;i++){
+      if(A[i]>B[i])return 1;
+      if(A[i]<B[i])return -1;
+    }
+    return 0;
+  }
+
+  async function fetchPublishedVersion(){
+    try{
+      const r=await fetch("./version.js?check="+Date.now(),{cache:"no-store",headers:{"cache-control":"no-cache"}});
+      if(!r.ok)return null;
+      const text=await r.text();
+      return text.match(/APP_VERSION=['"]([^'"]+)['"]/)?.[1]||null;
+    }catch{return null;}
+  }
+
+  function setUpdateUI(message,progress=20,title="يوجد تحديث جديد"){
+    if(!updateBar)return;
+    updateBar.hidden=false;
+    if(updateTitle)updateTitle.textContent=title;
+    if(updateStatus)updateStatus.textContent=message;
+    if(updateProgressFill)updateProgressFill.style.width=Math.max(0,Math.min(100,progress))+"%";
+  }
+
+  async function setupAppUpdates(){
+    if(appVersionEl)appVersionEl.textContent=VERSION;
+    if(!("serviceWorker" in navigator))return;
+
+    let reloading=false;
+
+    const attach=reg=>{
+      if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});
+      reg.addEventListener("updatefound",()=>{
+        const worker=reg.installing;
+        if(!worker)return;
+        setUpdateUI("جارٍ تنزيل النسخة الجديدة…",45);
+        worker.addEventListener("statechange",()=>{
+          if(worker.state==="installed"){
+            setUpdateUI("تم تنزيل التحديث…",78);
+            if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});
+          }
+        });
+      });
+    };
+
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(reloading)return;
+      reloading=true;
+      setUpdateUI("اكتمل التحديث. جارٍ إعادة التشغيل…",100,"تم التحديث");
+      setTimeout(()=>{
+        const url=new URL(location.href);
+        url.searchParams.set("v",Date.now().toString());
+        location.replace(url.toString());
+      },500);
+    });
+
+    const register=async(version=VERSION)=>{
+      try{
+        const reg=await navigator.serviceWorker.register("./sw.js?v="+encodeURIComponent(version),{scope:"./",updateViaCache:"none"});
+        attach(reg);
+        await reg.update();
+        return reg;
+      }catch{return null;}
+    };
+
+    const check=async()=>{
+      const latest=await fetchPublishedVersion();
+      if(!latest)return;
+      if(compareVersions(latest,VERSION)>0){
+        setUpdateUI("تم العثور على إصدار "+latest+"…",25);
+        const reg=await register(latest);
+        if(reg?.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});
+      }
+    };
+
+    await register(VERSION);
+    setTimeout(check,700);
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check();});
+    window.addEventListener("online",check);
+    setInterval(check,30*60*1000);
+  }
+
   try{
     validateContent();
     restore();
+    void applyLearningFont(state.learningFont,{persist:false,showStatus:false});
     render();
   }catch(err){
     console.error(err);
     screen.innerHTML='<section class="card lesson-card"><h2>تعذر تحميل الدرس</h2><p>اكتشف النظام خطأ في بيانات المحتوى ومنع عرضه حتى لا يتعلم الطفل معلومة غير صحيحة.</p></section>';
   }
 
-  if("serviceWorker" in navigator){
-    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v="+encodeURIComponent(VERSION),{scope:"./",updateViaCache:"none"}).catch(()=>{}));
-  }
+  window.addEventListener("load",()=>{void setupAppUpdates();});
 })();
