@@ -39,8 +39,10 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.6.0";
+  const APP_VERSION = "1.6.1";
   const STORE_KEY = "hurufi-progress:v1";
+  const FONT_KEY = "hurufi:learning-font";
+  const FONT_OPTIONS = ["geeza","sf","naskh"];
   const state = {
     screen:"home",
     previous:"home",
@@ -48,6 +50,7 @@
     sound:true,
     quiz:null,
     pathQuiz:null,
+    learningFont:loadLearningFont(),
     progress:loadProgress()
   };
 
@@ -55,6 +58,26 @@
   const backBtn = document.getElementById("backBtn");
   const soundBtn = document.getElementById("soundBtn");
   const bottomNav = document.getElementById("bottomNav");
+  const fontBtn = document.getElementById("fontBtn");
+  const fontPanel = document.getElementById("fontPanel");
+
+  function loadLearningFont(){
+    try{
+      const saved=localStorage.getItem(FONT_KEY);
+      return FONT_OPTIONS.includes(saved)?saved:"geeza";
+    }catch{return "geeza";}
+  }
+
+  function applyLearningFont(font){
+    const next=FONT_OPTIONS.includes(font)?font:"geeza";
+    state.learningFont=next;
+    document.documentElement.dataset.learningFont=next;
+    try{localStorage.setItem(FONT_KEY,next);}catch{}
+    const current=document.querySelector('[data-font-choice].active');
+    if(current) current.classList.remove("active");
+    const selected=document.querySelector('[data-font-choice="'+next+'"]');
+    if(selected) selected.classList.add("active");
+  }
 
   function loadProgress(){
     try{
@@ -378,11 +401,11 @@
   }
 
   function joiningGlyph(item,state){
-    const ch=item.letter;
-    if(state==="next") return ch+"\u200D";
-    if(state==="both") return "\u200D"+ch+"\u200D";
-    if(state==="previous") return "\u200D"+ch;
-    return ch;
+    const forms=ARABIC_FORMS[item.letter] || [item.letter,item.letter,item.letter,item.letter];
+    if(state==="next") return forms[1];
+    if(state==="both") return forms[2];
+    if(state==="previous") return forms[3];
+    return forms[0];
   }
 
   function joiningDiagram(item,state,compact=false){
@@ -696,6 +719,27 @@
       layer.appendChild(s);
       setTimeout(()=>s.remove(),1800);
     }
+  }
+
+  applyLearningFont(state.learningFont);
+
+  if(fontBtn && fontPanel){
+    fontBtn.addEventListener("click",()=>{
+      fontPanel.hidden=!fontPanel.hidden;
+      if(!fontPanel.hidden) applyLearningFont(state.learningFont);
+    });
+    fontPanel.querySelectorAll("[data-font-choice]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        applyLearningFont(btn.dataset.fontChoice);
+        fontPanel.hidden=true;
+        render();
+      });
+    });
+    document.addEventListener("click",e=>{
+      if(fontPanel.hidden) return;
+      if(e.target.closest("#fontPanel")||e.target.closest("#fontBtn")) return;
+      fontPanel.hidden=true;
+    });
   }
 
   bottomNav.addEventListener("click",e=>{
