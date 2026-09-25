@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.5.0";
+  const APP_VERSION = "1.6.0";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -78,7 +78,7 @@
 
   function pathData(letter){
     const p=(state.progress.path||{})[letter]||{};
-    return {discover:!!p.discover,identify:!!p.identify,position:!!p.position,mastery:!!p.mastery,best:Number(p.best)||0};
+    return {discover:!!p.discover,identify:!!p.identify,position:!!p.position,joining:!!p.joining||!!p.mastery,mastery:!!p.mastery,best:Number(p.best)||0};
   }
 
   function savePath(letter, patch){
@@ -198,15 +198,6 @@
     ];
   }
 
-  function uniqueFormsFor(item){
-    const seen=new Set();
-    return formsFor(item).filter(([,shape])=>{
-      if(seen.has(shape)) return false;
-      seen.add(shape);
-      return true;
-    }).map(([,shape],index)=>({shape,label:"شكل "+["١","٢","٣","٤"][index]}));
-  }
-
   function speak(text){
     if(!state.sound || !("speechSynthesis" in window)) return;
     try{
@@ -262,10 +253,10 @@
       <div class="path-list">
         ${LETTERS.map((item,i)=>{
           const p=pathData(item.letter), unlocked=isPathUnlocked(i), done=p.mastery;
-          const count=[p.discover,p.identify,p.position,p.mastery].filter(Boolean).length;
+          const count=[p.discover,p.identify,p.position,p.joining,p.mastery].filter(Boolean).length;
           return `<button class="path-row ${done?"done":""} ${unlocked&&!done?"active":""} ${!unlocked?"locked":""}" data-path-letter="${item.id}" ${!unlocked?"disabled":""}>
             <span class="path-number">${done?"✓":unlocked?item.letter:"🔒"}</span>
-            <span class="path-copy"><strong>حرف ${item.name}</strong><small>${done?"متقن":unlocked?count+"/4 مراحل مكتملة":"أكمل الحرف السابق أولًا"}</small></span>
+            <span class="path-copy"><strong>حرف ${item.name}</strong><small>${done?"متقن":unlocked?count+"/5 مراحل مكتملة":"أكمل الحرف السابق أولًا"}</small></span>
             <span class="path-meter"><span style="width:${count*25}%"></span></span>
           </button>`;
         }).join("")}
@@ -279,8 +270,9 @@
     const stages=[
       ["discover","👀","أتعرّف","أرى الحرف وأسمع اسمه",true],
       ["identify","🔎","أميّز","أختار الحرف من بين حروف أخرى",p.discover],
-      ["position","🚂","قطار الحرف","أتعلم البداية والوسط والنهاية بالقطار",p.identify],
-      ["mastery","⭐","أتقن","اختبار يفتح الحرف التالي",p.position]
+      ["position","📍","أعرف مكانه","أتعلم البداية والوسط والنهاية",p.identify],
+      ["joining","🔗","أعرف اتصاله","أرى كيف يمسك الحروف حوله",p.position],
+      ["mastery","⭐","أتقن","اختبار يفتح الحرف التالي",p.joining]
     ];
     return `<section class="path-letter-head"><div class="path-big-letter">${item.letter}</div><div><small>المسار الحالي</small><h1>حرف ${item.name}</h1><p>${p.mastery?"تم إتقان هذا الحرف.":"أكمل المراحل بالترتيب."}</p></div></section>
       <div class="stage-list">${stages.map((s,i)=>`<button class="stage-row ${p[s[0]]?"done":""} ${!s[4]?"locked":""}" data-stage="${s[0]}" ${!s[4]?"disabled":""}><span class="stage-icon">${p[s[0]]?"✓":s[1]}</span><span><strong>${i+1}. ${s[2]}</strong><small>${p[s[0]]?"مكتملة":s[3]}</small></span><b>${p[s[0]]?"تم":"←"}</b></button>`).join("")}</div>
@@ -289,12 +281,12 @@
 
   function discoverView(){
     const item=LETTERS[state.selectedLetter];
-    return `<section class="discover-card"><span class="eyebrow">المرحلة 1 · أتعرّف</span><div class="discover-letter">${item.letter}</div><h2>هذا حرف ${item.name}</h2><button class="btn soft" data-action="speak-letter">🔊 اسمع الحرف</button><p>${item.joinsNext?"يتصل بما بعده.":"لا يتصل بما بعده."}</p><div class="examples">${item.words.map((word,i)=>`<div class="example-row"><span>${["في البداية","في الوسط","في النهاية"][i]}</span><span class="word">${highlight(word,item.letter)}</span><span class="position-chip">${["أول","وسط","آخر"][i]}</span></div>`).join("")}</div><button class="btn green path-next" data-action="complete-discover">عرفت الحرف — انتقل للتمييز</button></section>`;
+    return `<section class="discover-card"><span class="eyebrow">المرحلة 1 · أتعرّف</span><div class="discover-letter">${item.letter}</div><h2>هذا حرف ${item.name}</h2><button class="btn soft" data-action="speak-letter">🔊 اسمع الحرف</button><p>هنا نتعرّف على الحرف فقط. سنتعلم مكانه واتصاله في مراحل مستقلة.</p><div class="examples">${item.words.map((word,i)=>`<div class="example-row"><span>${["في البداية","في الوسط","في النهاية"][i]}</span><span class="word">${highlight(word,item.letter)}</span><span class="position-chip">${["أول","وسط","آخر"][i]}</span></div>`).join("")}</div><button class="btn green path-next" data-action="complete-discover">عرفت الحرف — انتقل للتمييز</button></section>`;
   }
 
   function startPathQuiz(stage){
     const focus=LETTERS[state.selectedLetter];
-    const make=()=>stage==="identify"?makeIdentifyQuestion(focus):stage==="position"?makePositionQuestion(focus):newQuestion(focus);
+    const make=()=>stage==="identify"?makeIdentifyQuestion(focus):stage==="position"?makePositionQuestion(focus):stage==="joining"?makeJoiningQuestion(focus):newQuestion(focus);
     state.pathQuiz={stage,index:0,score:0,answered:false,choice:null,focus,question:make(),make};
     state.screen="path-quiz";
     render();
@@ -306,7 +298,7 @@
     if(q.index>=5) return pathResultView();
     const question=q.question;
     const percent=q.index/5*100;
-    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}${question.help?`<button class="how-btn" data-action="toggle-position-help" type="button">؟ كيف ألعب</button><div class="question-help hidden-help">${question.help}</div>`:""}<div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers ${question.type==="position"?"position-answers":""}">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" position-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
+    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}${question.help?`<button class="how-btn" data-action="toggle-position-help" type="button">؟ كيف ألعب</button><div class="question-help hidden-help">${question.help}</div>`:""}<div class="${question.type==="position"?"prompt-word":question.type==="joining"?"prompt-joining":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers ${question.type==="position"?"position-answers":question.type==="joining"?"joining-answers":""}">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?(question.type==="joining"?" joining-answer":" position-answer"):""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
   }
 
   function nextPathQuestion(){
@@ -324,7 +316,6 @@
 
   function learnView(){
     const item = LETTERS[state.selectedLetter];
-    const forms = formsFor(item);
     return `
       <section class="card letter-stage">
         <div class="giant-letter">${item.letter}</div>
@@ -333,19 +324,22 @@
         <div><button class="btn soft speak-btn" data-action="speak-letter">🔊 اسمع الحرف</button></div>
       </section>
 
-      <div class="section-title"><h2>أشكال قد أراها للحرف</h2><small>نتعرّف على الشكل فقط</small></div>
-      <div class="forms-note">قد يظهر الشكل نفسه في أكثر من مكان. <strong>لا نعرف موقع الحرف من شكله وحده.</strong></div>
-      <div class="forms-grid">
-        ${uniqueFormsFor(item).map(form => `<div class="form-card"><small>${form.label}</small><strong>${form.shape}</strong></div>`).join("")}
+      <div class="section-title"><h2>الحرف في الكلمات</h2><small>الكلمة أولًا، ثم نفهم الشكل</small></div>
+      <div class="examples">
+        ${item.words.map((word,i) => {
+          const state=joiningStateInWord(word,item.letter);
+          return `<div class="example-row word-context-row">
+            <span>${["في البداية","في الوسط","في النهاية"][i]}</span>
+            <span class="word whole-word">${escapeHTML(word)}</span>
+            <span class="word-join-form">${joiningGlyph(item,state)}</span>
+          </div>`;
+        }).join("")}
       </div>
 
-      <div class="section-title"><h2>الحرف في الكلمات</h2><small>المكان داخل الكلمة</small></div>
-      <div class="examples">
-        ${item.words.map((word,i) => `<div class="example-row">
-          <span>${["في البداية","في الوسط","في النهاية"][i]}</span>
-          <span class="word">${highlight(word,item.letter)}</span>
-          <span class="position-chip">${["أول","وسط","آخر"][i]}</span>
-        </div>`).join("")}
+      <div class="section-title"><h2>كيف يتصل الحرف؟</h2><small>الاتصال غير الموقع</small></div>
+      <div class="forms-note">قد يكون الحرف في آخر الكلمة <strong>متصلًا</strong> أو <strong>منفصلًا</strong>. لذلك نفصل مكان الحرف عن طريقة اتصاله.</div>
+      <div class="joining-summary">
+        ${joiningStatesFor(item).map(state=>`<div class="joining-summary-card">${joiningDiagram(item,state,true)}<small>${JOINING_LABELS[state].title}</small></div>`).join("")}
       </div>
 
       <div class="letter-nav">
@@ -369,6 +363,92 @@
       options:shuffle([target,...others]).map(x=>({value:x.letter,label:x.letter})),
       answer:target.letter,
       explanation:`هذا هو حرف ${target.name}: ${target.letter}`
+    };
+  }
+
+  const JOINING_LABELS={
+    isolated:{title:"لوحده",detail:"لا يمسك حرفًا بجانبه"},
+    next:{title:"يتصل بما بعده",detail:"يمسك الحرف الذي يأتي بعده"},
+    both:{title:"متصل من الجهتين",detail:"يمسك حرفًا من الجهتين"},
+    previous:{title:"يتصل بما قبله",detail:"يمسك الحرف الذي قبله"}
+  };
+
+  function joiningStatesFor(item){
+    return item.joinsNext ? ["isolated","next","both","previous"] : ["isolated","previous"];
+  }
+
+  function joiningGlyph(item,state){
+    const ch=item.letter;
+    if(state==="next") return ch+"\u200D";
+    if(state==="both") return "\u200D"+ch+"\u200D";
+    if(state==="previous") return "\u200D"+ch;
+    return ch;
+  }
+
+  function joiningDiagram(item,state,compact=false){
+    const toPrev=state==="previous"||state==="both";
+    const toNext=state==="next"||state==="both";
+    return `<div class="joining-diagram ${compact?"compact":""}">
+      <span class="join-side previous ${toPrev?"on":""}"><i></i></span>
+      <span class="join-core">${joiningGlyph(item,state)}</span>
+      <span class="join-side next ${toNext?"on":""}"><i></i></span>
+    </div>`;
+  }
+
+  function joiningStateInWord(word,letter){
+    const chars=[...word];
+    const idx=chars.indexOf(letter);
+    if(idx<0) return "isolated";
+    const prev=chars[idx-1];
+    const next=chars[idx+1];
+    const toPrev=!!prev && joinsToNext(prev);
+    const toNext=!!next && joinsToNext(letter);
+    if(toPrev&&toNext) return "both";
+    if(toNext) return "next";
+    if(toPrev) return "previous";
+    return "isolated";
+  }
+
+  function joiningLessonView(){
+    const item=LETTERS[state.selectedLetter];
+    const states=joiningStatesFor(item);
+    return `<section class="joining-lesson">
+      <span class="eyebrow">مرحلة الاتصال</span>
+      <h2>كيف يتصل حرف ${item.letter}؟</h2>
+      <p class="joining-rule">هذه <strong>حالات اتصال</strong> وليست أماكن جديدة في الكلمة.</p>
+      <div class="joining-cards">
+        ${states.map(state=>`<button class="joining-card" data-speak="حرف ${item.name}. ${JOINING_LABELS[state].title}. ${JOINING_LABELS[state].detail}.">
+          ${joiningDiagram(item,state)}
+          <strong>${JOINING_LABELS[state].title}</strong>
+          <small>${JOINING_LABELS[state].detail}</small>
+        </button>`).join("")}
+      </div>
+      <div class="joining-fact">${item.joinsNext
+        ? "هذا الحرف يستطيع الاتصال من الجهتين، لذلك قد نراه بأربع حالات اتصال."
+        : "هذا الحرف لا يتصل بما بعده، لذلك له حالتا اتصال أساسيتان فقط."}</div>
+      <button class="btn green path-next" data-action="start-joining-game">ابدأ تدريب الاتصال</button>
+    </section>`;
+  }
+
+  function makeJoiningQuestion(focus){
+    const target=focus ?? randomItem(LETTERS);
+    const states=joiningStatesFor(target);
+    const answer=randomItem(states);
+    return {
+      type:"joining",
+      letter:target.letter,
+      prompt:`كيف يتصل حرف ${target.letter} هنا؟`,
+      spoken:`انظر إلى حرف ${target.name}. اختر صورة الاتصال المطابقة.`,
+      display:`<div class="joining-question">${joiningDiagram(target,answer)}</div>`,
+      html:true,
+      options:states.map(state=>({
+        value:state,
+        label:JOINING_LABELS[state].title,
+        html:`<div class="joining-option">${joiningDiagram(target,state,true)}<small>${JOINING_LABELS[state].title}</small></div>`
+      })),
+      answer,
+      explanation:JOINING_LABELS[answer].title+".",
+      spokenAnswer:`هذه الحالة: ${JOINING_LABELS[answer].title}`
     };
   }
 
@@ -433,38 +513,24 @@
     return {
       type:"position",
       letter:target.letter,
-      prompt:`في أي خانة يوجد حرف ${target.letter}؟`,
-      spoken:`انظر إلى مكان حرف ${target.name}. لا تعتمد على شكل الحرف. اختر البطاقة التي فيها نفس المكان.`,
-      display:`<div class="position-question-board">${positionBoard(position,target.letter,false,false)}</div>`,
+      prompt:`ضع حرف ${target.letter} في ${labels[position]}`,
+      spoken:`ضع حرف ${target.name} في ${labels[position]}. نبدأ من اليمين.`,
+      display:`<div class="placement-task"><div class="placement-letter">${target.letter}</div><div class="placement-guide"><span>نبدأ من اليمين</span><b>←</b></div></div>`,
       html:true,
       help:positionHelpMarkup(target.letter),
       options:["start","middle","end"].map(pos=>({
         value:pos,
         label:labels[pos],
-        html:positionBoard(pos,"",true,false)
+        html:`<span class="placement-choice"><span class="choice-number">${pos==="start"?"١":pos==="middle"?"٢":"٣"}</span><span class="choice-box"></span></span>`
       })),
       answer:position,
-      explanation:`الحرف في الخانة رقم ${position==="start"?"١":position==="middle"?"٢":"٣"}: ${labels[position]}.`,
-      spokenAnswer:`هذا هو ${labels[position]}`
-    };
-  }
-
-  function makeShapeQuestion(focus){
-    const target = focus ?? randomItem(LETTERS);
-    const forms = formsFor(target);
-    const candidate = randomItem(forms);
-    return {
-      type:"shape", letter:target.letter,
-      prompt:`هذا شكل حرف ${target.letter} في...`,
-      display:candidate[1],
-      options:POSITIONS.map(p=>({value:p.id,label:p.label})),
-      answer:{ "منفصل":"isolated","أول":"start","وسط":"middle","آخر":"end" }[candidate[0]],
-      explanation:`الشكل المعروض لحرف ${target.letter}: ${candidate[0]}.`
+      explanation:`${labels[position]} هي الخانة رقم ${position==="start"?"١":position==="middle"?"٢":"٣"} من اليمين.`,
+      spokenAnswer:`أحسنت. هذا هو ${labels[position]}`
     };
   }
 
   function newQuestion(focus){
-    return randomItem([makeIdentifyQuestion,makePositionQuestion])(focus);
+    return randomItem([makeIdentifyQuestion,makePositionQuestion,makeJoiningQuestion])(focus);
   }
 
   function startQuiz(focusId=null){
@@ -487,15 +553,15 @@
           <span class="quiz-count">${q.index+1} / 10</span>
         </div>
         <section class="question-card">
-          <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"موقع الحرف":"شكل الحرف"}</span>
+          <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"مكان الحرف":question.type==="joining"?"اتصال الحرف":"الحرف"}</span>
           <h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}${question.help?`<button class="how-btn" data-action="toggle-position-help" type="button">؟ كيف ألعب</button><div class="question-help hidden-help">${question.help}</div>`:""}
-          <div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
-          <div class="answers ${question.type==="position"?"position-answers":""}">
+          <div class="${question.type==="position"?"prompt-word":question.type==="joining"?"prompt-joining":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
+          <div class="answers ${question.type==="position"?"position-answers":question.type==="joining"?"joining-answers":""}">
             ${question.options.map(opt => {
               let cls = "answer" + (question.type==="identify"?"":" text");
               if(q.answered && opt.value===question.answer) cls += " correct";
               if(q.answered && opt.value===q.choice && opt.value!==question.answer) cls += " wrong";
-              return `<button class="${cls}${opt.html?" position-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;
+              return `<button class="${cls}${opt.html?(question.type==="joining"?" joining-answer":" position-answer"):""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;
             }).join("")}
           </div>
           ${q.answered ? `<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"محاولة جميلة. "+question.explanation}</div>
@@ -514,7 +580,7 @@
     if(correct){ q.score += 1; celebrate(); }
     record(q.question.letter, correct);
     render();
-    if(q.question.type==="position" && q.question.spokenAnswer) setTimeout(()=>speak(q.question.spokenAnswer),120);
+    if((q.question.type==="position"||q.question.type==="joining") && q.question.spokenAnswer) setTimeout(()=>speak(q.question.spokenAnswer),120);
   }
 
   function nextQuestion(){
@@ -581,6 +647,7 @@
     else if(state.screen==="path-letter") screen.innerHTML=pathLetterView();
     else if(state.screen==="discover") screen.innerHTML=discoverView();
     else if(state.screen==="position-lesson") screen.innerHTML=positionLessonView();
+    else if(state.screen==="joining-lesson") screen.innerHTML=joiningLessonView();
     else if(state.screen==="path-quiz") screen.innerHTML=pathQuizView();
     else if(state.screen==="learn-list") screen.innerHTML='<div class="section-title"><h2>اختر حرفًا</h2><small>28 حرفًا</small></div>'+alphabetGrid();
     else if(state.screen==="learn") screen.innerHTML=learnView();
@@ -592,7 +659,7 @@
   function bindDynamic(){
     screen.querySelectorAll("[data-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("learn",Number(btn.dataset.letter))));
     screen.querySelectorAll("[data-path-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("path-letter",Number(btn.dataset.pathLetter))));
-    screen.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click",()=>{const stage=btn.dataset.stage;if(stage==="discover")setScreen("discover");else if(stage==="position")setScreen("position-lesson");else startPathQuiz(stage);}));
+    screen.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click",()=>{const stage=btn.dataset.stage;if(stage==="discover")setScreen("discover");else if(stage==="position")setScreen("position-lesson");else if(stage==="joining")setScreen("joining-lesson");else startPathQuiz(stage);}));
     screen.querySelectorAll("[data-answer]").forEach(btn => btn.addEventListener("click",()=>answerQuestion(btn.dataset.answer)));
     screen.querySelectorAll("[data-speak]").forEach(btn => btn.addEventListener("click",()=>speak(btn.dataset.speak)));
     screen.querySelectorAll("[data-action]").forEach(btn => btn.addEventListener("click",()=>{
@@ -602,6 +669,7 @@
       if(action==="open-current-path") setScreen("path-letter",currentPathIndex());
       if(action==="complete-discover"){savePath(LETTERS[state.selectedLetter].letter,{discover:true});setScreen("path-letter");}
       if(action==="start-position-game") startPathQuiz("position");
+      if(action==="start-joining-game") startPathQuiz("joining");
       if(action==="toggle-position-help"){const help=btn.parentElement.querySelector(".question-help");if(help)help.classList.toggle("hidden-help");}
       if(action==="next-path-question") nextPathQuestion();
       if(action==="retry-path-stage") startPathQuiz(state.pathQuiz.stage);
