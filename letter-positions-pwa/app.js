@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.4.0";
+  const APP_VERSION = "1.4.1";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -655,68 +655,106 @@
 
     let registration=null;
     let reloading=false;
-    const hadControllerAtStart=!!navigator.serviceWorker.controller;
-    let canReload=hadControllerAtStart;
 
     const attachRegistration=(reg)=>{
       registration=reg;
+
+      const activateWaiting=()=>{
+        if(reg.waiting){
+          setUpdateStatus("اكتمل التنزيل","جارٍ تفعيل الإصدار الجديد…",88);
+          reg.waiting.postMessage({type:"SKIP_WAITING"});
+        }
+      };
+
+      if(reg.waiting) activateWaiting();
+
       reg.addEventListener("updatefound",()=>{
         const worker=reg.installing;
-        if(!worker || !navigator.serviceWorker.controller) return;
-        setUpdateStatus("يوجد تحديث جديد","جارٍ تنزيل ملفات الإصدار الجديد…",18);
+        if(!worker) return;
+        setUpdateStatus("يوجد تحديث جديد","جارٍ تنزيل ملفات الإصدار الجديد…",22);
         worker.addEventListener("statechange",()=>{
           if(worker.state==="installed"){
-            setUpdateStatus("اكتمل التنزيل","جارٍ تثبيت التحديث…",86);
-            reg.waiting?.postMessage({type:"SKIP_WAITING"});
+            setUpdateStatus("اكتمل التنزيل","جارٍ تثبيت التحديث…",82);
+            activateWaiting();
           }else if(worker.state==="activating"){
-            setUpdateStatus("جارٍ تفعيل الإصدار","يتم استبدال الملفات القديمة…",96);
+            setUpdateStatus("جارٍ تفعيل الإصدار","يتم استبدال الملفات القديمة…",94);
+          }else if(worker.state==="activated"){
+            setUpdateStatus("تم التحديث","جارٍ فتح الإصدار الجديد…",100);
+          }else if(worker.state==="redundant"){
+            setUpdateStatus("تعذر تثبيت التحديث","سيعاد المحاولة تلقائيًا.",12);
           }
         });
       });
     };
 
+    const installVersion=async(version)=>{
+      const swUrl="./sw.js?v="+encodeURIComponent(version||APP_VERSION);
+      const reg=await navigator.serviceWorker.register(swUrl,{
+        scope:"./",
+        updateViaCache:"none"
+      });
+      attachRegistration(reg);
+      if(reg.installing){
+        setUpdateStatus("يوجد تحديث جديد","جارٍ تنزيل ملفات الإصدار الجديد…",22);
+      }else if(reg.waiting){
+        reg.waiting.postMessage({type:"SKIP_WAITING"});
+      }else{
+        await reg.update().catch(()=>{});
+      }
+      return reg;
+    };
+
     const check=async(manual=false)=>{
-      if(!navigator.onLine) return;
+      if(!navigator.onLine){
+        if(manual) setUpdateStatus("لا يوجد اتصال","سيتم فحص التحديث عند عودة الإنترنت.",0);
+        return;
+      }
       const latest=await fetchPublishedVersion();
-      const newer=latest && compareVersions(latest,APP_VERSION)>0;
+      if(!latest){
+        if(manual) setUpdateStatus("تعذر فحص التحديث","حاول مرة أخرى بعد قليل.",0);
+        return;
+      }
+
+      const newer=compareVersions(latest,APP_VERSION)>0;
       if(newer){
-        setUpdateStatus("يوجد إصدار جديد","جارٍ بدء التحديث تلقائيًا إلى v"+latest+"…",8);
-      }else if(manual){
+        setUpdateStatus("يوجد إصدار جديد","جارٍ بدء التحديث إلى v"+latest+"…",8);
+        try{
+          await installVersion(latest);
+        }catch{
+          setUpdateStatus("تعذر بدء التحديث","سيعاد المحاولة تلقائيًا.",8);
+        }
+        return;
+      }
+
+      try{
+        if(!registration) await installVersion(APP_VERSION);
+      }catch{}
+
+      if(manual){
         setUpdateStatus("التطبيق محدث","الإصدار الحالي v"+APP_VERSION,100);
         setTimeout(()=>{const bar=document.getElementById("updateBar");if(bar)bar.hidden=true;},1800);
       }
-      try{
-        if(!registration){
-          registration=await navigator.serviceWorker.getRegistration("./")||null;
-          if(registration) attachRegistration(registration);
-        }
-        await registration?.update();
-        registration?.waiting?.postMessage({type:"SKIP_WAITING"});
-      }catch{}
     };
 
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(!canReload){canReload=true;return;}
       if(reloading) return;
       reloading=true;
       setUpdateStatus("تم التحديث بنجاح","إعادة فتح حروفي على الإصدار الجديد…",100);
-      setTimeout(()=>location.reload(),650);
+      setTimeout(()=>{
+        const url=new URL(location.href);
+        url.searchParams.set("v",Date.now().toString());
+        location.replace(url.toString());
+      },650);
     });
 
     document.addEventListener("visibilitychange",()=>{
-      if(document.visibilityState==="visible") check();
+      if(document.visibilityState==="visible") void check();
     });
-    window.addEventListener("online",()=>check());
+    window.addEventListener("online",()=>void check());
 
-    window.addEventListener("load",async()=>{
-      try{
-        const reg=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
-        attachRegistration(reg);
-        await check();
-      }catch{}
-    });
+    window.addEventListener("load",()=>void check());
 
-    setInterval(()=>check(),30*60*1000);
+    setInterval(()=>void check(),30*60*1000);
 
     try{
       const key="hurufi:app-version";
