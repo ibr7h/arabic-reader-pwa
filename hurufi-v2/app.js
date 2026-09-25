@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.8";
+  const VERSION="2.0.0-alpha.9";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -29,6 +29,24 @@
     {word:"علم", spoken:"عَلَم", pause:"عَلَمْ", finalSound:"مْ", targetIndex:2, position:"end", connection:"previous", label:"النهاية"},
     {word:"نجوم", spoken:"نُجُوم", pause:"نُجُومْ", finalSound:"مْ", targetIndex:3, position:"end", connection:"isolated", label:"منفصل في النهاية"}
   ];
+
+  const TRAIN_WORD_BANK={
+    start:[
+      {word:"ملك",spoken:"مَلَك",pause:"مَلَكْ",targetIndex:0,position:"start",label:"البداية"},
+      {word:"مسك",spoken:"مِسْك",pause:"مِسْكْ",targetIndex:0,position:"start",label:"البداية"},
+      {word:"مرح",spoken:"مَرَح",pause:"مَرَحْ",targetIndex:0,position:"start",label:"البداية"}
+    ],
+    middle:[
+      {word:"رمل",spoken:"رَمْل",pause:"رَمْلْ",targetIndex:1,position:"middle",label:"الوسط"},
+      {word:"حمد",spoken:"حَمْد",pause:"حَمْدْ",targetIndex:1,position:"middle",label:"الوسط"},
+      {word:"سمن",spoken:"سَمْن",pause:"سَمْنْ",targetIndex:1,position:"middle",label:"الوسط"}
+    ],
+    end:[
+      {word:"قلم",spoken:"قَلَم",pause:"قَلَمْ",targetIndex:2,position:"end",label:"النهاية"},
+      {word:"نجم",spoken:"نَجْم",pause:"نَجْمْ",targetIndex:2,position:"end",label:"النهاية"},
+      {word:"لحم",spoken:"لَحْم",pause:"لَحْمْ",targetIndex:2,position:"end",label:"النهاية"}
+    ]
+  };
 
   const IDENTIFY_ROUNDS=[
     ["م","هـ","ن","ب"],
@@ -78,6 +96,7 @@
     trainScore:0,
     trainAnswered:false,
     trainChoice:null,
+    trainRound:createTrainRound(),
     challengeIndex:0,
     challengeScore:0,
     challengeAnswered:false,
@@ -102,6 +121,21 @@
       [arr[i],arr[j]]=[arr[j],arr[i]];
     }
     return arr;
+  }
+
+  function createTrainRound(){
+    const selected=["start","middle","end"].map(position=>{
+      const pool=TRAIN_WORD_BANK[position];
+      return {...pool[Math.floor(Math.random()*pool.length)]};
+    });
+    return shuffledCopy(selected);
+  }
+
+  function trainWordTiles(example){
+    const chars=[...example.word];
+    return `<div class="train-letter-strip" aria-label="${escapeHTML(example.word)}">
+      ${chars.map((ch,index)=>`<span class="train-letter-tile ${index===example.targetIndex?"target-letter":""}">${escapeHTML(ch)}</span>`).join("")}
+    </div>`;
   }
 
   function shuffledWithMovedAnswer(values,answer,key){
@@ -235,6 +269,15 @@
       if(actualPos!==ex.position) errors.push(`Example ${i}: position ${ex.position} != ${actualPos}`);
       const actualConn=derivedConnection(chars,ex.targetIndex);
       if(actualConn!==ex.connection) errors.push(`Example ${i}: connection ${ex.connection} != ${actualConn}`);
+    });
+    Object.entries(TRAIN_WORD_BANK).forEach(([position,words])=>{
+      words.forEach((ex,i)=>{
+        const chars=[...ex.word];
+        if(chars.length!==3) errors.push(`Train ${position} ${i}: word must have exactly 3 letters`);
+        if(chars[ex.targetIndex]!==TARGET) errors.push(`Train ${position} ${i}: targetIndex does not point to م`);
+        const actualPos=derivedPosition(chars,ex.targetIndex);
+        if(actualPos!==position||actualPos!==ex.position) errors.push(`Train ${position} ${i}: position mismatch`);
+      });
     });
     if(errors.length) throw new Error("Hurufi content validation failed:\n"+errors.join("\n"));
   }
@@ -485,19 +528,24 @@
     </section>`;
   }
 
-  function trainMarkup(answered=false,choice=null,answer=null,labels=true){
+  function trainMarkup(example,answered=false,choice=null,answer=null,labels=true){
     const positions=["start","middle","end"];
     const names={start:"البداية",middle:"الوسط",end:"النهاية"};
+    const chars=[...example.word];
     return `<div class="train-direction"><span>نبدأ من جهة المحرك</span><b>←</b></div>
-      <div class="train">
+      <div class="train ${answered?"train-filled":""}">
         <div class="engine" aria-hidden="true"><i class="wheel one"></i><i class="wheel two"></i></div>
         <div class="wagons">
-          ${positions.map(pos=>{
+          ${positions.map((pos,index)=>{
             let cls="wagon answerable";
             if(answered&&pos===answer)cls+=" correct";
             if(answered&&pos===choice&&pos!==answer)cls+=" wrong";
+            const letter=answered?chars[index]:"•";
+            const targetClass=answered&&index===example.targetIndex?" wagon-target":"";
             return `<button class="${cls}" data-train="${pos}" ${answered?"disabled":""}>
-              <span>•</span><i class="wheel"></i>${labels?`<small class="wagon-label">${names[pos]}</small>`:""}
+              <span class="wagon-content${targetClass}">${escapeHTML(letter)}</span>
+              <i class="wheel"></i>
+              ${labels?`<small class="wagon-label">${names[pos]}</small>`:""}
             </button>`;
           }).join("")}
         </div>
@@ -505,17 +553,17 @@
   }
 
   function trainView(){
-    const ex=EXAMPLES[state.trainIndex];
+    const ex=state.trainRound[state.trainIndex];
     return `<section class="card">
       <span class="eyebrow">٣ · قطار الكلمة</span>
       <h2>أين حرف م الأحمر؟</h2>
-      ${audioButton(`أَيْنَ حَرْفُ مِيمْ فِي الكَلِمَةِ: ${ex.spoken}؟ اِضْغَطِ العَرَبَةَ المُنَاسِبَة.`)}
-      ${dots(state.trainIndex,3)}
-      <div class="train-word big-word">${highlightExample(ex)}</div>
-      <div class="train-hint">اضغط العربة التي تمثل مكان م في الكلمة</div>
-      ${trainMarkup(state.trainAnswered,state.trainChoice,ex.position,true)}
+      ${audioButton(`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`)}
+      ${dots(state.trainIndex,state.trainRound.length)}
+      ${trainWordTiles(ex)}
+      <div class="train-hint">${state.trainAnswered?"شاهد كيف توزعت حروف الكلمة على العربات":"اختر العربة التي تمثل مكان حرف م"}</div>
+      ${trainMarkup(ex,state.trainAnswered,state.trainChoice,ex.position,true)}
       ${state.trainAnswered?`<div class="feedback ${state.trainChoice===ex.position?"good":"bad"}">${state.trainChoice===ex.position?"أَحْسَنْتَ! 🌟":`حرف م في ${ex.label} من كلمة ${ex.word}`}</div>
-      <div class="actions"><button class="btn primary full" data-action="train-next">${state.trainIndex===2?"الآن: كيف يتصل م؟":"الكلمة التالية"}</button></div>`:""}
+      <div class="actions"><button class="btn primary full" data-action="train-next">${state.trainIndex===state.trainRound.length-1?"الآن: كيف يتصل م؟":"كلمة جديدة"}</button></div>`:""}
     </section>`;
   }
 
@@ -661,7 +709,7 @@
 
     screen.querySelectorAll("[data-train]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.trainAnswered)return;
-      const ex=EXAMPLES[state.trainIndex];
+      const ex=state.trainRound[state.trainIndex];
       state.trainAnswered=true;state.trainChoice=btn.dataset.train;
       if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
       else speak(`حرف ميم في ${ex.label}.`);
@@ -688,9 +736,14 @@
         if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ مِيمْ؟"),120);}
         else setStage("words",{speakText:"اضغط الكلمات واسمعها. الحرف الأحمر هو حرف ميم."});
       }
-      if(a==="words-next")setStage("train",{speakText:"أين حرف ميم الأحمر؟ اضغط العربة المناسبة."});
+      if(a==="words-next"){
+        state.trainRound=createTrainRound();
+        state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;
+        setStage("train");
+        setTimeout(()=>speakPositionPrompt(state.trainRound[0],{withInstruction:true}),120);
+      }
       if(a==="train-next"){
-        if(state.trainIndex<2){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speakPositionPrompt(EXAMPLES[state.trainIndex],{withInstruction:true}),120);}
+        if(state.trainIndex<state.trainRound.length-1){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speakPositionPrompt(state.trainRound[state.trainIndex],{withInstruction:true}),120);}
         else setStage("joining",{speakText:"الآن نرى كيف يتصل حرف ميم داخل الكلمات."});
       }
       if(a==="joining-next"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
@@ -705,7 +758,7 @@
 
   function resetStageData(){
     state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;
-    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;
+    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();
   }
 
   function goBack(){
@@ -727,7 +780,7 @@
     try{
       localStorage.setItem(STORAGE_KEY,JSON.stringify({
         stage:state.stage,identifyIndex:state.identifyIndex,identifyScore:state.identifyScore,
-        visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,
+        visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,trainRound:state.trainRound,
         challengeIndex:state.challengeIndex,challengeScore:state.challengeScore
       }));
     }catch{}
@@ -743,6 +796,7 @@
       state.visitedWords=new Set(Array.isArray(p.visitedWords)?p.visitedWords:[]);
       state.trainIndex=Math.max(0,Math.min(2,Number(p.trainIndex)||0));
       state.trainScore=Number(p.trainScore)||0;
+      state.trainRound=Array.isArray(p.trainRound)&&p.trainRound.length===3?p.trainRound:createTrainRound();
       state.challengeIndex=Math.max(0,Math.min(CHALLENGE.length-1,Number(p.challengeIndex)||0));
       state.challengeScore=Number(p.challengeScore)||0;
       state.identifyOrder=null;
