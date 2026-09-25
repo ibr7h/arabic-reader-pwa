@@ -148,3 +148,63 @@ button{cursor:pointer}
   .position-answer{min-height:72px!important;padding:6px!important}
   .position-board.compact{width:100%}
 }
+
+
+/* v1.6.0 — separate position from joining */
+.placement-task{display:grid;justify-items:center;gap:10px;margin:12px auto 4px}
+.placement-letter{width:88px;height:88px;border-radius:24px;display:grid;place-items:center;background:var(--green-soft);border:2px solid #74aa96;color:var(--green);font-size:54px;font-weight:900;box-shadow:0 8px 20px rgba(47,125,103,.12)}
+.placement-guide{display:flex;align-items:center;gap:8px;color:#4d6d62;font-size:10px;font-weight:850}
+.placement-guide b{font-size:24px;color:var(--green)}
+.position-answers{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;direction:rtl}
+.position-answer{min-height:96px!important;padding:8px!important;overflow:hidden}
+.placement-choice{display:grid;place-items:center;width:100%;height:100%}
+.choice-box{display:block;width:58px;height:58px;border:3px dashed #cfc8bc;border-radius:16px;background:#fbf8f2}
+.position-answer.correct .choice-box{border-style:solid;border-color:#58a083;background:#dff1e9}
+.position-answer.wrong .choice-box{border-style:solid;border-color:#c77b88;background:#fae7eb}
+.position-cell .cell-number{display:none!important}
+.position-cell{grid-template-rows:1fr auto!important}
+
+.joining-lesson{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow);text-align:center}
+.joining-lesson h2{margin:6px 0 8px;font-size:22px}
+.joining-rule{margin:0 0 12px;padding:9px 11px;border-radius:14px;background:#eef7f3;color:#385e52;font-size:10px;line-height:1.7}
+.joining-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.joining-card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:12px 8px;color:var(--ink);display:grid;gap:5px;justify-items:center;min-height:136px}
+.joining-card strong{font-size:11px}.joining-card small{font-size:8px;color:var(--muted);line-height:1.5}
+.joining-fact{margin-top:11px;padding:10px 12px;border-radius:14px;background:var(--gold-soft);color:#72581f;font-size:10px;line-height:1.7}
+
+.joining-diagram{width:min(100%,230px);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;direction:rtl;margin:auto}
+.join-core{width:70px;height:70px;display:grid;place-items:center;border-radius:20px;background:var(--green-soft);border:2px solid #74aa96;color:var(--green);font-size:42px;font-weight:900;line-height:1}
+.join-side{height:8px;display:flex;align-items:center;position:relative}
+.join-side i{display:block;width:100%;height:5px;border-radius:99px;background:#d9d4ca;opacity:.35}
+.join-side.on i{background:var(--green);opacity:1}
+.join-side.on::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:var(--green);top:50%;transform:translateY(-50%)}
+.join-side.previous.on::after{right:0}
+.join-side.next.on::after{left:0}
+.joining-diagram.compact{width:min(100%,160px)}
+.joining-diagram.compact .join-core{width:52px;height:52px;border-radius:15px;font-size:30px}
+.joining-diagram.compact .join-side{height:6px}
+.joining-diagram.compact .join-side i{height:4px}
+.joining-diagram.compact .join-side.on::after{width:12px;height:12px}
+
+.prompt-joining{margin:12px 0}
+.joining-question{display:flex;justify-content:center;padding:8px 0}
+.joining-answers{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+.joining-answer{min-height:112px!important;padding:8px!important}
+.joining-option{display:grid;gap:4px;justify-items:center;width:100%}
+.joining-option small{font-size:9px;color:var(--muted)}
+.joining-answer.correct .join-core{background:#dff1e9;border-color:#58a083}
+.joining-answer.wrong .join-core{background:#fae7eb;border-color:#c77b88}
+
+.joining-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.joining-summary-card{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:10px 8px;display:grid;gap:4px;justify-items:center}
+.joining-summary-card small{font-size:9px;color:var(--muted)}
+.word-context-row{grid-template-columns:84px 1fr 58px!important}
+.whole-word{font-size:24px!important}
+.word-join-form{width:50px;height:42px;border-radius:12px;background:var(--green-soft);display:grid;place-items:center;color:var(--green);font-size:26px;font-weight:900}
+
+@media(max-width:430px){
+  .joining-cards{grid-template-columns:1fr 1fr}
+  .joining-answer{min-height:102px!important}
+  .choice-box{width:52px;height:52px}
+  .placement-letter{width:78px;height:78px;font-size:48px}
+}
