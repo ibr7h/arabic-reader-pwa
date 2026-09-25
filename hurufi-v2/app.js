@@ -1,15 +1,16 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.1";
+  const VERSION="2.0.0-alpha.2";
   const TARGET="م";
+  const TARGET_SPOKEN="مِيم";
   const STORAGE_KEY="hurufi-v2:golden-meem";
 
   const EXAMPLES=[
-    {word:"موز", targetIndex:0, position:"start", connection:"next", label:"البداية"},
-    {word:"قمر", targetIndex:1, position:"middle", connection:"both", label:"الوسط"},
-    {word:"علم", targetIndex:2, position:"end", connection:"previous", label:"النهاية"},
-    {word:"نجوم", targetIndex:3, position:"end", connection:"isolated", label:"منفصل في النهاية"}
+    {word:"موز", spoken:"مَوْز", targetIndex:0, position:"start", connection:"next", label:"البداية"},
+    {word:"قمر", spoken:"قَمَر", targetIndex:1, position:"middle", connection:"both", label:"الوسط"},
+    {word:"علم", spoken:"عَلَم", targetIndex:2, position:"end", connection:"previous", label:"النهاية"},
+    {word:"نجوم", spoken:"نُجُوم", targetIndex:3, position:"end", connection:"isolated", label:"منفصل في النهاية"}
   ];
 
   const IDENTIFY_ROUNDS=[
@@ -19,7 +20,7 @@
   ];
 
   const CHALLENGE=[
-    {type:"identify", prompt:"أين حرف م؟", spoken:"أين حرف ميم؟", options:["ن","م","هـ","ب"], answer:"م"},
+    {type:"identify", prompt:"أين حرف م؟", spoken:"أَيْنَ حَرْفُ مِيم؟", options:["ن","م","هـ","ب"], answer:"م"},
     {type:"position", example:0},
     {type:"position", example:1},
     {type:"position", example:2},
@@ -103,16 +104,48 @@
     return escapeHTML(beforeText)+'<span class="target">'+escapeHTML(targetText)+'</span>'+escapeHTML(afterText);
   }
 
-  function speak(text){
+  let preferredArabicVoice=null;
+
+  function scoreArabicVoice(voice){
+    if(!voice || !/^ar/i.test(voice.lang||"")) return -1;
+    let score=0;
+    const lang=(voice.lang||"").toLowerCase();
+    const name=(voice.name||"").toLowerCase();
+    if(lang==="ar-sa") score+=100;
+    else if(lang.startsWith("ar-")) score+=70;
+    else score+=50;
+    if(voice.localService) score+=12;
+    if(/majed|maged|tarik|laila|hoda|hameed|arabic/.test(name)) score+=8;
+    if(/enhanced|premium/.test(name)) score+=6;
+    return score;
+  }
+
+  function refreshArabicVoice(){
+    if(!("speechSynthesis" in window)) return;
+    const voices=speechSynthesis.getVoices().filter(v=>/^ar/i.test(v.lang||""));
+    voices.sort((a,b)=>scoreArabicVoice(b)-scoreArabicVoice(a));
+    preferredArabicVoice=voices[0]||null;
+  }
+
+  function speak(text,{rate=.66}={}){
     if(!state.sound || !("speechSynthesis" in window)) return;
     try{
+      if(!preferredArabicVoice) refreshArabicVoice();
       speechSynthesis.cancel();
       const u=new SpeechSynthesisUtterance(text);
-      u.lang="ar-SA";u.rate=.72;u.pitch=1.03;
-      const voice=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang));
-      if(voice) u.voice=voice;
+      u.lang=preferredArabicVoice?.lang||"ar-SA";
+      u.rate=rate;
+      u.pitch=1;
+      u.volume=1;
+      if(preferredArabicVoice) u.voice=preferredArabicVoice;
       speechSynthesis.speak(u);
     }catch{}
+  }
+
+  if("speechSynthesis" in window){
+    refreshArabicVoice();
+    speechSynthesis.addEventListener?.("voiceschanged",refreshArabicVoice);
+    speechSynthesis.onvoiceschanged=refreshArabicVoice;
   }
 
   function stageIndex(){return STAGES.indexOf(state.stage)}
@@ -143,7 +176,7 @@
       <div class="hero-letter">م</div>
       <h1 class="hero-title">هذا حرف ميم</h1>
       <p>درس واحد بسيط. نسمع الحرف، نميّزه، نراه في الكلمات، ثم نعرف مكانه واتصاله.</p>
-      ${audioButton("هذا حرف ميم. ميم.","اسمع حرف م")}
+      ${audioButton("هٰذَا حَرْفُ مِيم. مِيم.","اسمع حرف م")}
       <div class="actions"><button class="btn primary full" data-action="begin">ابدأ الدرس</button></div>
     </section>`;
   }
@@ -153,7 +186,7 @@
     return `<section class="card lesson-card">
       <span class="eyebrow">١ · أميّز الحرف</span>
       <h2>أين حرف م؟</h2>
-      ${audioButton("أين حرف ميم؟")}
+      ${audioButton("أَيْنَ حَرْفُ مِيم؟")}
       ${dots(state.identifyIndex,IDENTIFY_ROUNDS.length)}
       <div class="identify-grid">
         ${choices.map(ch=>{
@@ -208,7 +241,7 @@
     return `<section class="card">
       <span class="eyebrow">٣ · قطار الكلمة</span>
       <h2>أين حرف م الأحمر؟</h2>
-      ${audioButton(`أين حرف ميم في كلمة ${ex.word}؟ اضغط العربة المناسبة.`)}
+      ${audioButton(`أَيْنَ حَرْفُ مِيم فِي كَلِمَةِ ${ex.spoken}؟ اِضْغَطِ العَرَبَةَ المُنَاسِبَة.`)}
       ${dots(state.trainIndex,3)}
       <div class="train-word big-word">${highlightExample(ex)}</div>
       <div class="train-hint">اضغط العربة التي تمثل مكان م في الكلمة</div>
@@ -254,11 +287,11 @@
   function challengeView(){
     const q=CHALLENGE[state.challengeIndex];
     if(q.type==="identify"){
-      return challengeShell(q,`<div class="identify-grid">${q.options.map(v=>challengeButton(v,v,"letter")).join("")}</div>`);
+      return challengeShell(q,`<div class="identify-grid challenge-letter-grid">${q.options.map(v=>challengeButton(v,v,"letter")).join("")}</div>`);
     }
     if(q.type==="position"){
       const ex=EXAMPLES[q.example];
-      const qq={...q,prompt:`أين م في كلمة ${ex.word}؟`,spoken:`أين حرف ميم في كلمة ${ex.word}؟`,answer:ex.position};
+      const qq={...q,prompt:`أين م في كلمة ${ex.word}؟`,spoken:`أَيْنَ حَرْفُ مِيم فِي كَلِمَةِ ${ex.spoken}؟`,answer:ex.position};
       return challengeShell(qq,`<div class="train-word big-word">${highlightExample(ex)}</div>${challengeTrain(ex.position)}`);
     }
     if(q.type==="connection"){
@@ -273,7 +306,7 @@
   function challengeButton(value,label,type="text",html=false){
     const q=CHALLENGE[state.challengeIndex];
     const answer=String(q.answer);
-    let cls="challenge-option"+(type==="word"?" word-option":"");
+    let cls="challenge-option"+(type==="word"?" word-option":type==="letter"?" letter-option":"");
     if(state.challengeAnswered&&String(value)===answer)cls+=" correct";
     if(state.challengeAnswered&&String(value)===String(state.challengeChoice)&&String(value)!==answer)cls+=" wrong";
     return `<button class="${cls}" data-challenge="${escapeHTML(value)}" ${state.challengeAnswered?"disabled":""}>${html?label:escapeHTML(label)}</button>`;
@@ -348,13 +381,13 @@
     screen.querySelectorAll("[data-identify]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.identifyAnswered)return;
       state.identifyAnswered=true;state.identifyChoice=btn.dataset.identify;
-      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak("أحسنت. هذا حرف ميم.");}
-      else speak("هذا هو حرف ميم.");
+      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak("أَحْسَنْت. هٰذَا حَرْفُ مِيم.");}
+      else speak("هٰذَا هُوَ حَرْفُ مِيم.");
       render();save();
     }));
 
     screen.querySelectorAll("[data-word]").forEach(btn=>btn.addEventListener("click",()=>{
-      const idx=Number(btn.dataset.word);state.visitedWords.add(idx);speak(EXAMPLES[idx].word);render();save();
+      const idx=Number(btn.dataset.word);state.visitedWords.add(idx);speak(EXAMPLES[idx].spoken,{rate:.62});render();save();
     }));
 
     screen.querySelectorAll("[data-train]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -368,7 +401,7 @@
 
     screen.querySelectorAll("[data-connection-word]").forEach(btn=>btn.addEventListener("click",()=>{
       const idx=Number(btn.dataset.connectionWord);const ex=EXAMPLES[idx],meta=CONNECTION_LABELS[ex.connection];
-      speak(`${ex.word}. حرف ميم ${meta[0]}.`);
+      speak(`${ex.spoken}. حَرْفُ مِيم ${meta[0]}.`,{rate:.62});
     }));
 
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -381,19 +414,19 @@
 
     screen.querySelectorAll("[data-action]").forEach(btn=>btn.addEventListener("click",()=>{
       const a=btn.dataset.action;
-      if(a==="begin"){resetStageData();setStage("identify",{speakText:"أين حرف ميم؟"});}
+      if(a==="begin"){resetStageData();setStage("identify",{speakText:"أَيْنَ حَرْفُ مِيم؟"});}
       if(a==="identify-next"){
-        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;render();save();setTimeout(()=>speak("أين حرف ميم؟"),120);}
+        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ مِيم؟"),120);}
         else setStage("words",{speakText:"اضغط الكلمات واسمعها. الحرف الأحمر هو حرف ميم."});
       }
       if(a==="words-next")setStage("train",{speakText:"أين حرف ميم الأحمر؟ اضغط العربة المناسبة."});
       if(a==="train-next"){
-        if(state.trainIndex<2){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speak(`أين حرف ميم في كلمة ${EXAMPLES[state.trainIndex].word}؟`),120);}
+        if(state.trainIndex<2){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speak(`أَيْنَ حَرْفُ مِيم فِي كَلِمَةِ ${EXAMPLES[state.trainIndex].spoken}؟`),120);}
         else setStage("joining",{speakText:"الآن نرى كيف يتصل حرف ميم داخل الكلمات."});
       }
       if(a==="joining-next"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
       if(a==="challenge-next"){
-        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>speak(q.type==="position"?`أين حرف ميم في كلمة ${EXAMPLES[q.example].word}؟`:q.spoken),120);}
+        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>speak(q.type==="position"?`أَيْنَ حَرْفُ مِيم فِي كَلِمَةِ ${EXAMPLES[q.example].spoken}؟`:q.spoken),120);}
         else{setStage("finish");celebrate();}
       }
       if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
