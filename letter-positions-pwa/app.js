@@ -297,7 +297,7 @@
     if(q.index>=5) return pathResultView();
     const question=q.question;
     const percent=q.index/5*100;
-    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2><div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
+    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2><div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers ${question.type==="position"?"train-answers":""}">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
   }
 
   function nextPathQuestion(){
@@ -463,7 +463,7 @@
           <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"موقع الحرف":"شكل الحرف"}</span>
           <h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}
           <div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
-          <div class="answers">
+          <div class="answers ${question.type==="position"?"train-answers":""}">
             ${question.options.map(opt => {
               let cls = "answer" + (question.type==="identify"?"":" text");
               if(q.answered && opt.value===question.answer) cls += " correct";
