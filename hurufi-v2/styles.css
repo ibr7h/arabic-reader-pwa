@@ -1,9 +1,8 @@
 
-:root[data-learning-font="school"]{--learning-font:"Noto Naskh Arabic","Geeza Pro","SF Arabic",serif}
-:root[data-learning-font="baloo"]{--learning-font:"Baloo Bhaijaan 2","Geeza Pro","Noto Naskh Arabic",sans-serif}
-:root[data-learning-font="marhey"]{--learning-font:"Marhey","Geeza Pro","Noto Naskh Arabic",sans-serif}
-:root[data-learning-font="cairo"]{--learning-font:"Cairo","SF Arabic","Geeza Pro",sans-serif}
-:root[data-learning-font="readex"]{--learning-font:"Readex Pro","SF Arabic","Geeza Pro",sans-serif}
+:root[data-learning-font="school"]{--learning-font:"Hurufi Naskh","Geeza Pro","SF Arabic",serif}
+:root[data-learning-font="baloo"]{--learning-font:"Hurufi Baloo","Geeza Pro","Hurufi Naskh",sans-serif}
+:root[data-learning-font="cairo"]{--learning-font:"Hurufi Cairo","SF Arabic","Geeza Pro",sans-serif}
+:root[data-learning-font="readex"]{--learning-font:"Hurufi Readex","SF Arabic","Geeza Pro",sans-serif}
 :root[data-learning-font="geeza"]{--learning-font:"Geeza Pro","Noto Naskh Arabic","SF Arabic",serif}
 
 body[data-stage="intro"]{--stage-accent:#34a486;--stage-soft:#e7f8f1;--stage-line:#cfe9df}
@@ -41,7 +40,7 @@ body[data-stage="finish"]{--stage-accent:#34a486;--stage-soft:#e7f8f1;--stage-li
   --stage-accent:var(--green);
   --stage-soft:var(--green-soft);
   --stage-line:#cfe9df;
-  --learning-font:"Noto Naskh Arabic","Geeza Pro","SF Arabic",serif;
+  --learning-font:"Hurufi Naskh","Geeza Pro","SF Arabic",serif;
   --shadow:0 2px 3px rgba(36,49,45,.04),0 14px 32px rgba(36,49,45,.08);
   --shadow-soft:0 1px 2px rgba(36,49,45,.04),0 6px 16px rgba(36,49,45,.06);
   --r-sm:14px;
@@ -295,11 +294,10 @@ p{font-size:var(--sm);line-height:1.75;color:var(--muted)}
 .font-options button.active{border-color:#8b78ef;background:#f4f1ff;box-shadow:0 0 0 2px rgba(139,120,239,.10)}
 .font-options button.loading{opacity:.65}
 .font-sample{font-size:32px;line-height:1.35;white-space:nowrap}
-.sample-school{font-family:"Noto Naskh Arabic","Geeza Pro",serif}
-.sample-baloo{font-family:"Baloo Bhaijaan 2","Geeza Pro",sans-serif}
-.sample-marhey{font-family:"Marhey","Geeza Pro",sans-serif}
-.sample-cairo{font-family:"Cairo","Geeza Pro",sans-serif}
-.sample-readex{font-family:"Readex Pro","Geeza Pro",sans-serif}
+.sample-school{font-family:"Hurufi Naskh","Geeza Pro",serif}
+.sample-baloo{font-family:"Hurufi Baloo","Geeza Pro",sans-serif}
+.sample-cairo{font-family:"Hurufi Cairo","Geeza Pro",sans-serif}
+.sample-readex{font-family:"Hurufi Readex","Geeza Pro",sans-serif}
 .sample-geeza{font-family:"Geeza Pro","Noto Naskh Arabic",serif}
 .font-options strong{font-size:13px}.font-options small{font-size:10px;color:var(--muted)}
 .font-status{min-height:22px;margin-top:9px;text-align:center;font-size:12px;font-weight:800;color:var(--muted)}
