@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.4.1";
+  const APP_VERSION = "1.5.0";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -297,7 +297,7 @@
     if(q.index>=5) return pathResultView();
     const question=q.question;
     const percent=q.index/5*100;
-    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2><div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers ${question.type==="position"?"train-answers":""}">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
+    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}${question.help?`<button class="how-btn" data-action="toggle-position-help" type="button">؟ كيف ألعب</button><div class="question-help hidden-help">${question.help}</div>`:""}<div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers ${question.type==="position"?"position-answers":""}">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" position-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
   }
 
   function nextPathQuestion(){
@@ -362,41 +362,57 @@
     };
   }
 
-  function trainMarkup(activePosition, letter="", compact=false){
-    const order=["end","middle","start"];
-    const cars=order.map(pos=>{
-      const active=pos===activePosition;
-      const content=active && letter ? escapeHTML(letter) : "";
-      return `<span class="train-car ${active?"active":""}">${content}</span>`;
-    }).join("");
-    return `<span class="word-train ${compact?"mini":""}" aria-hidden="true"><span class="train-cars">${cars}</span><span class="train-engine"><span class="engine-window"></span><span class="engine-stack"></span></span></span>`;
+  function positionBoard(activePosition, letter="", compact=false, withLabels=false){
+    const slots=[
+      {id:"start",num:"١",label:"البداية"},
+      {id:"middle",num:"٢",label:"الوسط"},
+      {id:"end",num:"٣",label:"النهاية"}
+    ];
+    return `<div class="position-board ${compact?"compact":""}">
+      <div class="reading-direction"><span class="start-here">ابدأ هنا</span><span class="direction-arrow">←</span></div>
+      <div class="position-slots">
+        ${slots.map(slot=>`<span class="position-cell ${slot.id===activePosition?"active":""}">
+          <span class="cell-number">${slot.num}</span>
+          <span class="cell-content">${slot.id===activePosition && letter ? escapeHTML(letter) : "•"}</span>
+          ${withLabels?`<small>${slot.label}</small>`:""}
+        </span>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  function positionHelpMarkup(letter){
+    return `<div class="position-help">
+      <div class="help-head"><strong>كيف أعرف المكان؟</strong><button type="button" data-speak="نبدأ من اليمين. الخانة الأولى هي البداية، والثانية هي الوسط، والثالثة هي النهاية.">🔊 اسمع</button></div>
+      <p>لا تنظر إلى شكل الحرف لتعرف مكانه. انظر فقط إلى <strong>الخانة التي يوجد فيها</strong>.</p>
+      <div class="help-examples">
+        <div>${positionBoard("start",letter,true,true)}</div>
+        <div>${positionBoard("middle",letter,true,true)}</div>
+        <div>${positionBoard("end",letter,true,true)}</div>
+      </div>
+    </div>`;
   }
 
   function positionLessonView(){
     const item=LETTERS[state.selectedLetter];
     return `
       <section class="position-lesson">
-        <span class="eyebrow">قبل اللعبة</span>
-        <h2>قطار حرف ${item.letter}</h2>
-        <p>المحرك في اليمين. نبدأ من العربة القريبة منه، ثم الوسط، ثم النهاية.</p>
-        <div class="train-lessons">
-          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في البداية">
-            ${trainMarkup("start",item.letter)}
-            <strong>البداية</strong>
-            <small>قريب من المحرك</small>
+        <span class="eyebrow">تعلّم قبل الاختبار</span>
+        <h2>أين يوجد حرف ${item.letter}؟</h2>
+        <button class="question-audio" data-speak="نبدأ من اليمين. واحد يعني البداية، اثنان يعني الوسط، ثلاثة يعني النهاية.">🔊 اسمع الشرح</button>
+        <div class="lesson-direction">نبدأ من اليمين <b>←</b></div>
+        <div class="position-teaching-cards">
+          <button class="position-teach-card" data-speak="حرف ${item.name} في البداية. الخانة رقم واحد.">
+            ${positionBoard("start",item.letter,false,true)}
           </button>
-          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في الوسط">
-            ${trainMarkup("middle",item.letter)}
-            <strong>الوسط</strong>
-            <small>في العربة الوسطى</small>
+          <button class="position-teach-card" data-speak="حرف ${item.name} في الوسط. الخانة رقم اثنين.">
+            ${positionBoard("middle",item.letter,false,true)}
           </button>
-          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في النهاية">
-            ${trainMarkup("end",item.letter)}
-            <strong>النهاية</strong>
-            <small>أبعد عربة عن المحرك</small>
+          <button class="position-teach-card" data-speak="حرف ${item.name} في النهاية. الخانة رقم ثلاثة.">
+            ${positionBoard("end",item.letter,false,true)}
           </button>
         </div>
-        <button class="btn green path-next" data-action="start-position-game">ابدأ لعبة القطار 🚂</button>
+        <div class="position-rule"><strong>المهم:</strong> مكان الحرف تحدده الخانة، وليس شكله.</div>
+        <button class="btn green path-next" data-action="start-position-game">فهمت — ابدأ التدريب</button>
       </section>`;
   }
 
@@ -407,18 +423,19 @@
     return {
       type:"position",
       letter:target.letter,
-      prompt:`أين حرف ${target.letter} في القطار؟`,
-      spoken:`أين حرف ${target.name} في القطار؟ اختر القطار المطابق.`,
-      display:`<div class="train-question">${trainMarkup(position,target.letter)}</div>`,
+      prompt:`في أي خانة يوجد حرف ${target.letter}؟`,
+      spoken:`انظر إلى مكان حرف ${target.name}. لا تعتمد على شكل الحرف. اختر البطاقة التي فيها نفس المكان.`,
+      display:`<div class="position-question-board">${positionBoard(position,target.letter,false,false)}</div>`,
       html:true,
+      help:positionHelpMarkup(target.letter),
       options:["start","middle","end"].map(pos=>({
         value:pos,
         label:labels[pos],
-        html:trainMarkup(pos,"",true)
+        html:positionBoard(pos,"",true,false)
       })),
       answer:position,
-      explanation:`هذا في ${labels[position]}.`,
-      spokenAnswer:`هذا في ${labels[position]}`
+      explanation:`الحرف في الخانة رقم ${position==="start"?"١":position==="middle"?"٢":"٣"}: ${labels[position]}.`,
+      spokenAnswer:`هذا هو ${labels[position]}`
     };
   }
 
@@ -437,7 +454,7 @@
   }
 
   function newQuestion(focus){
-    return randomItem([makeIdentifyQuestion,makePositionQuestion,makeShapeQuestion])(focus);
+    return randomItem([makeIdentifyQuestion,makePositionQuestion])(focus);
   }
 
   function startQuiz(focusId=null){
@@ -461,14 +478,14 @@
         </div>
         <section class="question-card">
           <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"موقع الحرف":"شكل الحرف"}</span>
-          <h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}
+          <h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}${question.help?`<button class="how-btn" data-action="toggle-position-help" type="button">؟ كيف ألعب</button><div class="question-help hidden-help">${question.help}</div>`:""}
           <div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
-          <div class="answers ${question.type==="position"?"train-answers":""}">
+          <div class="answers ${question.type==="position"?"position-answers":""}">
             ${question.options.map(opt => {
               let cls = "answer" + (question.type==="identify"?"":" text");
               if(q.answered && opt.value===question.answer) cls += " correct";
               if(q.answered && opt.value===q.choice && opt.value!==question.answer) cls += " wrong";
-              return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;
+              return `<button class="${cls}${opt.html?" position-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;
             }).join("")}
           </div>
           ${q.answered ? `<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"محاولة جميلة. "+question.explanation}</div>
@@ -575,6 +592,7 @@
       if(action==="open-current-path") setScreen("path-letter",currentPathIndex());
       if(action==="complete-discover"){savePath(LETTERS[state.selectedLetter].letter,{discover:true});setScreen("path-letter");}
       if(action==="start-position-game") startPathQuiz("position");
+      if(action==="toggle-position-help"){const help=btn.parentElement.querySelector(".question-help");if(help)help.classList.toggle("hidden-help");}
       if(action==="next-path-question") nextPathQuestion();
       if(action==="retry-path-stage") startPathQuiz(state.pathQuiz.stage);
       if(action==="back-to-path-letter") setScreen("path-letter");
