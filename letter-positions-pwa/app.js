@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.6.4";
+  const APP_VERSION = "1.6.5";
   const STORE_KEY = "hurufi-progress:v1";
   const FONT_KEY = "hurufi:learning-font";
   const FONT_OPTIONS = ["geeza","sf","naskh","baloo","marhey","lalezar","changa","school","cairo","readex"];
@@ -219,18 +219,24 @@
   function highlight(word, letter){
     const chars=[...word];
     const targetIndex=chars.indexOf(letter);
-    return chars.map((ch,index)=>{
-      const forms=ARABIC_FORMS[ch];
-      if(!forms) return escapeHTML(ch);
-      const prev=chars[index-1];
-      const next=chars[index+1];
-      const prevJoins=!!prev && joinsToNext(prev);
-      const joinsPrev=prevJoins;
-      const joinsNext=!!next && joinsToNext(ch);
-      const formIndex=joinsPrev && joinsNext ? 2 : joinsNext ? 1 : joinsPrev ? 3 : 0;
-      const glyph=forms[formIndex];
-      return index===targetIndex ? '<span class="target contextual-target">'+glyph+'</span>' : glyph;
-    }).join("");
+    if(targetIndex<0) return escapeHTML(word);
+
+    const before=chars.slice(0,targetIndex).join("");
+    const target=chars[targetIndex];
+    const after=chars.slice(targetIndex+1).join("");
+    const prev=chars[targetIndex-1];
+    const next=chars[targetIndex+1];
+
+    const joinsPrev=!!prev && joinsToNext(prev);
+    const joinsNext=!!next && joinsToNext(target);
+
+    const beforeText=before+(joinsPrev?"\u200D":"");
+    const targetText=(joinsPrev?"\u200D":"")+target+(joinsNext?"\u200D":"");
+    const afterText=(joinsNext?"\u200D":"")+after;
+
+    return escapeHTML(beforeText)
+      +'<span class="target contextual-target">'+escapeHTML(targetText)+'</span>'
+      +escapeHTML(afterText);
   }
 
   function joinsToNext(ch){
@@ -416,7 +422,7 @@
           const state=joiningStateInWord(word,item.letter);
           return `<div class="example-row word-context-row">
             <span>${["في البداية","في الوسط","في النهاية"][i]}</span>
-            <span class="word whole-word">${escapeHTML(word)}</span>
+            <span class="word whole-word">${highlight(word,item.letter)}</span>
             <span class="word-join-form">${joiningGlyph(item,state)}</span>
           </div>`;
         }).join("")}
