@@ -27,3 +27,33 @@
   font-weight:160 700;
   font-display:swap;
 }
+
+@font-face{
+  font-family:"Hurufi Scheherazade";
+  src:url("./assets/fonts/ScheherazadeNew-Regular.ttf") format("truetype");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Harmattan";
+  src:url("./assets/fonts/Harmattan-Regular.ttf") format("truetype");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Noto Sans Arabic";
+  src:url("./assets/fonts/NotoSansArabic-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:100 900;
+  font-stretch:62.5% 100%;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Noto Kufi";
+  src:url("./assets/fonts/NotoKufiArabic-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+}
