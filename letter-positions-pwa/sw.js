@@ -1,5 +1,5 @@
-const CACHE = "hurufi-letter-positions-v10";
-const APP_VERSION = "1.6.0";
+const CACHE = "hurufi-letter-positions-v11";
+const APP_VERSION = "1.6.1";
 const SHELL = [
   ["./index.html", "./index.html?v="+APP_VERSION],
   ["./styles.css", "./styles.css?v="+APP_VERSION],
