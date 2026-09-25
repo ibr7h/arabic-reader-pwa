@@ -65,3 +65,37 @@ button{cursor:pointer}
 
 /* Pre-reading visual position activity */
 .position-visual{direction:rtl;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:360px;margin:14px auto 6px}.visual-slot{min-height:86px;border:2px dashed #d8d2c6;border-radius:20px;background:#faf7f0;display:grid;place-items:center;font-size:26px;color:#b9b1a4;font-weight:900}.visual-slot.has-letter{border-style:solid;border-color:#86bda7;background:var(--green-soft);color:var(--green);font-size:52px;box-shadow:0 8px 20px rgba(47,125,103,.10)}.question-audio{border:0;border-radius:999px;background:var(--green-soft);color:#276452;padding:8px 12px;font-size:11px;font-weight:850;margin:0 auto 4px}.question-card .answers .answer.text{font-size:15px;min-height:62px}.question-card .answers{direction:rtl}.position-visual .visual-slot:nth-child(1)::after{content:"🚪";font-size:16px;position:absolute;transform:translateY(31px)}.position-visual .visual-slot:nth-child(2)::after{content:"⬜";font-size:14px;position:absolute;transform:translateY(31px)}.position-visual .visual-slot:nth-child(3)::after{content:"🏁";font-size:15px;position:absolute;transform:translateY(31px)}.visual-slot{position:relative}@media(max-width:390px){.visual-slot{min-height:76px}.visual-slot.has-letter{font-size:46px}}
+
+
+/* v1.4.0 — Three-car word train for pre-readers */
+.position-lesson{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:var(--shadow);text-align:center}
+.position-lesson h2{margin:6px 0 4px;font-size:22px}.position-lesson>p{margin:0 auto 14px;max-width:420px;color:var(--muted);font-size:11px;line-height:1.8}
+.train-lessons{display:grid;gap:10px}
+.train-lesson-card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:13px 10px;display:grid;gap:5px;justify-items:center;color:var(--ink)}
+.train-lesson-card strong{font-size:12px}.train-lesson-card small{font-size:9px;color:var(--muted)}
+.word-train{direction:ltr;display:inline-flex;align-items:flex-end;gap:4px;position:relative;padding-bottom:10px}
+.train-cars{display:flex;direction:ltr;gap:4px;align-items:flex-end}
+.train-car{width:58px;height:50px;border:2px solid #cfc9bd;border-radius:11px 11px 8px 8px;background:#f8f5ee;display:grid;place-items:center;font-size:28px;font-weight:900;color:#b3aca1;position:relative}
+.train-car::before,.train-engine::before,.train-engine::after{content:"";position:absolute;bottom:-10px;width:13px;height:13px;border-radius:50%;background:#6f7773;border:3px solid #f7f4ed}
+.train-car::before{left:21px}
+.train-car.active{border-color:#72aa95;background:var(--green-soft);color:var(--green);box-shadow:0 7px 18px rgba(47,125,103,.12)}
+.train-engine{width:68px;height:58px;border:2px solid #5d8f7d;border-radius:12px 18px 8px 8px;background:#3f806b;position:relative}
+.train-engine::before{left:8px}.train-engine::after{right:8px}
+.engine-window{position:absolute;right:11px;top:10px;width:22px;height:18px;border-radius:6px;background:#e8f3ee;border:2px solid rgba(255,255,255,.8)}
+.engine-stack{position:absolute;left:10px;top:-14px;width:15px;height:18px;border-radius:4px 4px 2px 2px;background:#3f806b}
+.engine-stack::after{content:"";position:absolute;left:-3px;top:-5px;width:21px;height:6px;border-radius:4px;background:#3f806b}
+.train-question{margin:16px auto 6px;display:flex;justify-content:center}
+.train-answer{min-height:92px!important;padding:8px!important;display:grid!important;place-items:center}
+.train-answer .word-train{transform:scale(.72);transform-origin:center}
+.word-train.mini .train-car{width:46px;height:38px;font-size:18px}
+.word-train.mini .train-engine{width:54px;height:46px}
+.word-train.mini .engine-window{width:17px;height:14px;right:8px;top:8px}
+.word-train.mini .train-car::before,.word-train.mini .train-engine::before,.word-train.mini .train-engine::after{bottom:-9px;width:10px;height:10px;border-width:2px}
+.train-answers{grid-template-columns:repeat(3,1fr)!important;gap:8px!important}
+.train-answers .answer.correct{outline:3px solid #58a083}
+.train-answers .answer.wrong{outline:3px solid #c9818e}
+@media(max-width:430px){
+  .word-train{gap:3px}.train-cars{gap:3px}.train-car{width:50px;height:46px;font-size:25px}.train-engine{width:59px;height:53px}
+  .train-answer .word-train{transform:scale(.62)}
+  .train-answers{gap:5px!important}.train-answer{min-height:78px!important;padding:4px!important}
+}
