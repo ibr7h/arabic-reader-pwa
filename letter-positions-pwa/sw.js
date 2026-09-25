@@ -1,8 +1,9 @@
-const CACHE = "hurufi-letter-positions-v17";
-const APP_VERSION = "1.7.1";
+const CACHE = "hurufi-letter-positions-v18";
+const APP_VERSION = "1.8.0";
 const SHELL = [
   ["./index.html", "./index.html?v="+APP_VERSION],
   ["./styles.css", "./styles.css?v="+APP_VERSION],
+  ["./design-system.css", "./design-system.css?v="+APP_VERSION],
   ["./app.js", "./app.js?v="+APP_VERSION],
   ["./manifest.webmanifest", "./manifest.webmanifest?v="+APP_VERSION]
 ];
@@ -66,18 +67,18 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if(url.origin===location.origin && /\/(app\.js|styles\.css|manifest\.webmanifest)$/.test(url.pathname)){
+  if(url.origin===location.origin && /\/(app\.js|styles\.css|design-system\.css|manifest\.webmanifest)$/.test(url.pathname)){
     event.respondWith((async()=>{
       try{
         const response=await fetch(event.request,{cache:"no-store"});
         if(response.ok){
           const cache=await caches.open(CACHE);
-          const cleanKey=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
+          const cleanKey=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/design-system.css")?"./design-system.css":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
           await cache.put(cleanKey,response.clone());
         }
         return response;
       }catch{
-        const fallback=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
+        const fallback=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/design-system.css")?"./design-system.css":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
         return (await caches.match(fallback)) || Response.error();
       }
     })());
