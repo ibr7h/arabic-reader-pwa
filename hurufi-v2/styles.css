@@ -394,3 +394,74 @@ p{font-size:var(--sm);line-height:1.75;color:var(--muted)}
 :root[data-learning-font="kufi"] .big-word{
   letter-spacing:.01em
 }
+
+
+/* alpha.9 — three-letter train words mapped to wagons */
+.train-letter-strip{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,92px));
+  justify-content:center;
+  gap:10px;
+  direction:rtl;
+  margin:16px auto 10px
+}
+.train-letter-tile{
+  min-height:86px;
+  border:2px solid #dcd5ef;
+  border-radius:22px;
+  background:linear-gradient(180deg,#fff,#f8f5ff);
+  display:grid;
+  place-items:center;
+  font-family:var(--learning-font)!important;
+  font-size:var(--glyph-choice);
+  font-weight:650;
+  color:var(--ink);
+  box-shadow:var(--shadow-soft)
+}
+.train-letter-tile:nth-child(2){background:linear-gradient(180deg,#fff,#eefaff);border-color:#d2eaf5}
+.train-letter-tile:nth-child(3){background:linear-gradient(180deg,#fff,#fff4f8);border-color:#f1d9e2}
+.train-letter-tile.target-letter{
+  color:var(--red);
+  border-color:#f3a8b5;
+  background:linear-gradient(180deg,#fff,#fff0f3)
+}
+.wagon-content{
+  font-family:var(--learning-font)!important;
+  font-size:30px;
+  font-weight:650;
+  line-height:1;
+  color:#b9b1a5
+}
+.train-filled .wagon-content{
+  font-size:38px;
+  color:var(--ink)
+}
+.train-filled .wagon-target{
+  color:var(--red)!important
+}
+.train-filled .wagon.correct{
+  background:linear-gradient(180deg,#fff,var(--green-soft))
+}
+.train-filled .wagon.wrong{
+  background:linear-gradient(180deg,#fff,var(--red-soft))
+}
+.train-filled .wagon{
+  transition:background .2s ease,border-color .2s ease,transform .2s ease
+}
+@media(prefers-reduced-motion:no-preference){
+  .train-filled .wagon-content{
+    animation:wagonLetterIn .26s ease both
+  }
+  .train-filled .wagon:nth-child(2) .wagon-content{animation-delay:.06s}
+  .train-filled .wagon:nth-child(3) .wagon-content{animation-delay:.12s}
+}
+@keyframes wagonLetterIn{
+  from{opacity:.1;transform:translateY(-8px) scale(.92)}
+  to{opacity:1;transform:none}
+}
+@media(max-width:390px){
+  .train-letter-strip{gap:7px}
+  .train-letter-tile{min-height:76px;border-radius:18px}
+  .wagon-content{font-size:27px}
+  .train-filled .wagon-content{font-size:34px}
+}
