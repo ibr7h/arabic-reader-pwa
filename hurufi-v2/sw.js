@@ -1,6 +1,6 @@
-const CACHE="hurufi-v2-alpha6";
-const FONT_CACHE="hurufi-v2-fonts-v1";
-const VERSION="2.0.0-alpha.6";
+const CACHE="hurufi-v2-alpha7";
+const FONT_CACHE="hurufi-v2-fonts-v2";
+const VERSION="2.0.0-alpha.7";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
@@ -11,6 +11,10 @@ const SHELL=[
 const STATIC=["../assets/icons/icon-192.png","../assets/icons/icon-512.png"];
 const FONT_ASSETS=[
   "./assets/fonts/NotoNaskhArabic-VF.ttf",
+  "./assets/fonts/ScheherazadeNew-Regular.ttf",
+  "./assets/fonts/Harmattan-Regular.ttf",
+  "./assets/fonts/NotoSansArabic-VF.ttf",
+  "./assets/fonts/NotoKufiArabic-VF.ttf",
   "./assets/fonts/BalooBhaijaan2-VF.ttf",
   "./assets/fonts/Cairo-VF.ttf",
   "./assets/fonts/ReadexPro-VF.ttf"
@@ -49,7 +53,10 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k.startsWith("hurufi-v2-alpha")&&k!==CACHE).map(k=>caches.delete(k)));
+    await Promise.all([
+      ...keys.filter(k=>k.startsWith("hurufi-v2-alpha")&&k!==CACHE).map(k=>caches.delete(k)),
+      ...keys.filter(k=>k.startsWith("hurufi-v2-fonts-")&&k!==FONT_CACHE).map(k=>caches.delete(k))
+    ]);
     await self.clients.claim();
   })());
 });
