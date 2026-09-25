@@ -1,16 +1,17 @@
-const CACHE = "hurufi-letter-positions-v5";
+const CACHE = "hurufi-letter-positions-v6";
 const CORE = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
+  "./version.js",
   "../assets/icons/icon-192.png",
   "../assets/icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", event => {
