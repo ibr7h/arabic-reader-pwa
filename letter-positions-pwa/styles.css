@@ -507,3 +507,54 @@ button{cursor:pointer}
 .position-cell.active .cell-content{
   color:var(--letter-red)!important;
 }
+
+
+/* v1.6.5 — red is reserved for the target letter inside a word */
+.giant-letter,
+.discover-letter,
+.prompt-letter,
+.placement-letter,
+.join-core,
+.word-join-form{
+  color:var(--green)!important;
+}
+
+.placement-letter,
+.join-core{
+  background:var(--green-soft)!important;
+  border-color:#9cc8b8!important;
+}
+
+.joining-question .join-core,
+.joining-card .join-core,
+.joining-summary-card .join-core{
+  color:var(--green)!important;
+}
+
+.joining-answer.correct .join-core{
+  color:var(--green)!important;
+  background:#dff1e9!important;
+  border-color:var(--green)!important;
+}
+.joining-answer.wrong .join-core{
+  color:var(--green)!important;
+  background:#fae7eb!important;
+  border-color:var(--rose)!important;
+}
+
+.position-cell.active .cell-content{
+  color:var(--green)!important;
+}
+
+/* Only the learned letter inside a real word is red. */
+.word .target,
+.whole-word .target,
+.example-row .target,
+.contextual-target{
+  color:var(--letter-red)!important;
+  background:transparent!important;
+  padding:0!important;
+  border-radius:0!important;
+  font-family:inherit!important;
+  font-weight:inherit!important;
+}
