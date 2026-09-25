@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.9";
+  const VERSION="2.0.0-alpha.10";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -48,6 +48,18 @@
     ]
   };
 
+  const SHORT_VOWELS=[
+    {id:"fatha",glyph:"مَ",name:"الفتحة",spoken:"مَ",color:"coral"},
+    {id:"kasra",glyph:"مِ",name:"الكسرة",spoken:"مِ",color:"violet"},
+    {id:"damma",glyph:"مُ",name:"الضمة",spoken:"مُ",color:"sky"}
+  ];
+
+  const MADD_FORMS=[
+    {id:"alif",short:"مَ",glyph:"مَا",name:"مدّ بالألف",spoken:"مَا",letter:"ا",color:"coral"},
+    {id:"yaa",short:"مِ",glyph:"مِي",name:"مدّ بالياء",spoken:"مِي",letter:"ي",color:"violet"},
+    {id:"waw",short:"مُ",glyph:"مُو",name:"مدّ بالواو",spoken:"مُو",letter:"و",color:"sky"}
+  ];
+
   const IDENTIFY_ROUNDS=[
     ["م","هـ","ن","ب"],
     ["و","م","ف","ق"],
@@ -59,10 +71,12 @@
     {type:"position", example:0},
     {type:"position", example:1},
     {type:"position", example:2},
-    {type:"connection", prompt:"أي كلمة فيها م متصل من الجهتين؟", spoken:"أَيُّ كَلِمَةٍ فِيهَا حَرْفُ مِيمْ مُتَّصِلٌ مِنَ الجِهَتَيْنِ؟", options:[0,1,2], answer:1}
+    {type:"connection", prompt:"أي كلمة فيها م متصل من الجهتين؟", spoken:"أَيُّ كَلِمَةٍ فِيهَا حَرْفُ مِيمْ مُتَّصِلٌ مِنَ الجِهَتَيْنِ؟", options:[0,1,2], answer:1},
+    {type:"sound", soundKind:"vowel", prompt:"أي صوت سمعت؟", spoken:"مِ", options:["مَ","مِ","مُ"], answer:"مِ"},
+    {type:"sound", soundKind:"madd", prompt:"أي مدّ سمعت؟", spoken:"مُو", options:["مَا","مِي","مُو"], answer:"مُو"}
   ];
 
-  const STAGES=["intro","identify","words","train","joining","challenge","finish"];
+  const STAGES=["intro","identify","words","train","joining","vowels","madd","challenge","finish"];
   const screen=document.getElementById("screen");
   const backBtn=document.getElementById("backBtn");
   const soundBtn=document.getElementById("soundBtn");
@@ -97,6 +111,8 @@
     trainAnswered:false,
     trainChoice:null,
     trainRound:createTrainRound(),
+    visitedVowels:new Set(),
+    visitedMadd:new Set(),
     challengeIndex:0,
     challengeScore:0,
     challengeAnswered:false,
@@ -469,7 +485,7 @@
   }
 
   function progress(){
-    const map={intro:0,identify:16,words:33,train:50,joining:68,challenge:84,finish:100};
+    const map={intro:0,identify:12,words:24,train:38,joining:52,vowels:66,madd:78,challenge:90,finish:100};
     return map[state.stage]??0;
   }
 
@@ -486,7 +502,7 @@
       <span class="eyebrow">الدرس الذهبي</span>
       <div class="hero-letter">م</div>
       <h1 class="hero-title">هذا حرف ميم</h1>
-      <p>درس واحد بسيط. نسمع الحرف، نميّزه، نراه في الكلمات، ثم نعرف مكانه واتصاله.</p>
+      <p>درس واحد بسيط. نسمع الحرف، نميّزه، نراه في الكلمات، ثم نعرف مكانه واتصاله وحركاته ومدوده.</p>
       ${audioButton("هٰذَا حَرْفُ مِيمْ. مِيمْ.","اسمع حرف م")}
       <div class="actions"><button class="btn primary full" data-action="begin">ابدأ الدرس</button></div>
     </section>`;
@@ -596,8 +612,59 @@
           </button>`;
         }).join("")}
       </div>
-      <div class="actions"><button class="btn primary full" data-action="joining-next">ابدأ التحدي ⭐</button></div>
+      <div class="actions"><button class="btn primary full" data-action="joining-next">التالي: حركات م</button></div>
     </section>`;
+  }
+
+  function vowelView(){
+    return `<section class="card sound-learning-card">
+      <span class="eyebrow">٥ · الحركات القصيرة</span>
+      <h2>كيف يتغير صوت م؟</h2>
+      <p>اضغط كل بطاقة واسمع الصوت القصير. الحركة تغيّر صوت الحرف، لكنها لا تضيف حرفًا جديدًا.</p>
+      <div class="sound-cards">
+        ${SHORT_VOWELS.map(item=>`<button class="sound-card ${item.color} ${state.visitedVowels.has(item.id)?"visited":""}" data-vowel="${item.id}">
+          <span class="sound-glyph">${item.glyph}</span>
+          <strong>${item.name}</strong>
+          <span class="sound-icon">🔊</span>
+        </button>`).join("")}
+      </div>
+      <div class="sound-summary">
+        <span><b>مَ</b><small>صوت قصير</small></span>
+        <span><b>مِ</b><small>صوت قصير</small></span>
+        <span><b>مُ</b><small>صوت قصير</small></span>
+      </div>
+      <div class="actions"><button class="btn primary full" data-action="vowels-next" ${state.visitedVowels.size<3?"disabled":""}>التالي: المدود</button></div>
+    </section>`;
+  }
+
+  function maddView(){
+    return `<section class="card sound-learning-card">
+      <span class="eyebrow">٦ · المدود</span>
+      <h2>نُطيل الصوت</h2>
+      <p>اضغط كل صف واسمع الفرق: الحركة قصيرة، ثم يأتي حرف المد فيصبح الصوت أطول.</p>
+      <div class="madd-stack">
+        ${MADD_FORMS.map(item=>`<button class="madd-card ${item.color} ${state.visitedMadd.has(item.id)?"visited":""}" data-madd="${item.id}">
+          <span class="madd-short">${item.short}</span>
+          <span class="madd-arrow">←</span>
+          <span class="madd-long">${item.glyph}</span>
+          <span class="madd-label">${item.name}</span>
+          <span class="sound-icon">🔊</span>
+        </button>`).join("")}
+      </div>
+      <div class="madd-rule">
+        <div><span class="mini-glyph">مَ</span><b>+</b><span class="madd-letter">ا</span><b>=</b><span class="long-result">مَا</span></div>
+        <div><span class="mini-glyph">مِ</span><b>+</b><span class="madd-letter">ي</span><b>=</b><span class="long-result">مِي</span></div>
+        <div><span class="mini-glyph">مُ</span><b>+</b><span class="madd-letter">و</span><b>=</b><span class="long-result">مُو</span></div>
+      </div>
+      <div class="actions"><button class="btn primary full" data-action="madd-next" ${state.visitedMadd.size<3?"disabled":""}>ابدأ التحدي ⭐</button></div>
+    </section>`;
+  }
+
+  function soundChallengeOptions(q){
+    const options=challengeOptions(q);
+    return `<div class="sound-challenge-options">
+      ${options.map(value=>challengeButton(value,value,"sound")).join("")}
+    </div>`;
   }
 
   function challengeView(){
@@ -609,6 +676,9 @@
       const ex=EXAMPLES[q.example];
       const qq={...q,prompt:`أين م في كلمة ${ex.word}؟`,spoken:`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`,answer:ex.position};
       return challengeShell(qq,`<div class="train-word big-word">${highlightExample(ex)}</div>${challengeTrain(ex.position)}`);
+    }
+    if(q.type==="sound"){
+      return challengeShell(q,soundChallengeOptions(q));
     }
     if(q.type==="connection"){
       return challengeShell(q,`<div class="challenge-options">${challengeOptions(q).map(idx=>{
@@ -622,7 +692,7 @@
   function challengeButton(value,label,type="text",html=false){
     const q=CHALLENGE[state.challengeIndex];
     const answer=String(q.answer);
-    let cls="challenge-option"+(type==="word"?" word-option":type==="letter"?" letter-option":"");
+    let cls="challenge-option"+(type==="word"?" word-option":type==="letter"?" letter-option":type==="sound"?" sound-option":"");
     if(state.challengeAnswered&&String(value)===answer)cls+=" correct";
     if(state.challengeAnswered&&String(value)===String(state.challengeChoice)&&String(value)!==answer)cls+=" wrong";
     return `<button class="${cls}" data-challenge="${escapeHTML(value)}" ${state.challengeAnswered?"disabled":""}>${html?label:escapeHTML(label)}</button>`;
@@ -644,7 +714,7 @@
     const prompt=q.type==="position"?(q.prompt||""):(q.prompt||"");
     const spoken=q.spoken||prompt;
     return `<section class="card">
-      <span class="eyebrow">٥ · تحدي م</span>
+      <span class="eyebrow">٧ · تحدي م</span>
       <h2>${prompt}</h2>
       ${audioButton(spoken)}
       ${dots(state.challengeIndex,CHALLENGE.length)}
@@ -687,6 +757,8 @@
     else if(state.stage==="words")screen.innerHTML=wordsView();
     else if(state.stage==="train")screen.innerHTML=trainView();
     else if(state.stage==="joining")screen.innerHTML=joiningView();
+    else if(state.stage==="vowels")screen.innerHTML=vowelView();
+    else if(state.stage==="madd")screen.innerHTML=maddView();
     else if(state.stage==="challenge")screen.innerHTML=challengeView();
     else screen.innerHTML=finishView();
     bind();
@@ -721,6 +793,25 @@
       speakWordAndConnection(ex,meta[0]);
     }));
 
+    screen.querySelectorAll("[data-vowel]").forEach(btn=>btn.addEventListener("click",()=>{
+      const item=SHORT_VOWELS.find(x=>x.id===btn.dataset.vowel);
+      if(!item)return;
+      state.visitedVowels.add(item.id);
+      speakSequence([{text:item.spoken,rate:.50,pauseAfter:80}]);
+      render();save();
+    }));
+
+    screen.querySelectorAll("[data-madd]").forEach(btn=>btn.addEventListener("click",()=>{
+      const item=MADD_FORMS.find(x=>x.id===btn.dataset.madd);
+      if(!item)return;
+      state.visitedMadd.add(item.id);
+      speakSequence([
+        {text:item.short,rate:.50,pauseAfter:180},
+        {text:item.spoken,rate:.46,pauseAfter:80}
+      ]);
+      render();save();
+    }));
+
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.challengeAnswered)return;
       state.challengeAnswered=true;state.challengeChoice=btn.dataset.challenge;
@@ -746,9 +837,24 @@
         if(state.trainIndex<state.trainRound.length-1){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speakPositionPrompt(state.trainRound[state.trainIndex],{withInstruction:true}),120);}
         else setStage("joining",{speakText:"الآن نرى كيف يتصل حرف ميم داخل الكلمات."});
       }
-      if(a==="joining-next"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
+      if(a==="joining-next"){
+        state.visitedVowels=new Set();
+        setStage("vowels",{speakText:"نَتَعَلَّمُ الآنَ حَرَكَاتِ حَرْفِ مِيمْ."});
+      }
+      if(a==="vowels-next"){
+        state.visitedMadd=new Set();
+        setStage("madd",{speakText:"الآنَ نُطِيلُ الصَّوْتَ مَعَ حُرُوفِ المَدِّ."});
+      }
+      if(a==="madd-next"){
+        state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;
+        setStage("challenge",{speakText:CHALLENGE[0].spoken});
+      }
       if(a==="challenge-next"){
-        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});else speak(q.spoken);},120);}
+        if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{
+          if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});
+          else if(q.type==="sound")speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+          else speak(q.spoken);
+        },120);}
         else{setStage("finish");celebrate();}
       }
       if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
@@ -758,11 +864,11 @@
 
   function resetStageData(){
     state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;
-    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();
+    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();state.visitedVowels=new Set();state.visitedMadd=new Set();
   }
 
   function goBack(){
-    const map={identify:"intro",words:"identify",train:"words",joining:"train",challenge:"joining",finish:"challenge"};
+    const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",challenge:"madd",finish:"challenge"};
     const target=map[state.stage];
     if(target)setStage(target);
   }
@@ -780,7 +886,7 @@
     try{
       localStorage.setItem(STORAGE_KEY,JSON.stringify({
         stage:state.stage,identifyIndex:state.identifyIndex,identifyScore:state.identifyScore,
-        visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,trainRound:state.trainRound,
+        visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,trainRound:state.trainRound,visitedVowels:[...state.visitedVowels],visitedMadd:[...state.visitedMadd],
         challengeIndex:state.challengeIndex,challengeScore:state.challengeScore
       }));
     }catch{}
@@ -797,6 +903,8 @@
       state.trainIndex=Math.max(0,Math.min(2,Number(p.trainIndex)||0));
       state.trainScore=Number(p.trainScore)||0;
       state.trainRound=Array.isArray(p.trainRound)&&p.trainRound.length===3?p.trainRound:createTrainRound();
+      state.visitedVowels=new Set(Array.isArray(p.visitedVowels)?p.visitedVowels:[]);
+      state.visitedMadd=new Set(Array.isArray(p.visitedMadd)?p.visitedMadd:[]);
       state.challengeIndex=Math.max(0,Math.min(CHALLENGE.length-1,Number(p.challengeIndex)||0));
       state.challengeScore=Number(p.challengeScore)||0;
       state.identifyOrder=null;
