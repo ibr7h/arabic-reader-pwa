@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.3.0";
+  const APP_VERSION = "1.4.0";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -270,7 +270,7 @@
     const stages=[
       ["discover","👀","أتعرّف","أرى الحرف وأسمع اسمه",true],
       ["identify","🔎","أميّز","أختار الحرف من بين حروف أخرى",p.discover],
-      ["position","🧩","أعرف مكانه","أحدد البداية والوسط والنهاية بصريًا",p.identify],
+      ["position","🚂","قطار الحرف","أتعلم البداية والوسط والنهاية بالقطار",p.identify],
       ["mastery","⭐","أتقن","اختبار يفتح الحرف التالي",p.position]
     ];
     return `<section class="path-letter-head"><div class="path-big-letter">${item.letter}</div><div><small>المسار الحالي</small><h1>حرف ${item.name}</h1><p>${p.mastery?"تم إتقان هذا الحرف.":"أكمل المراحل بالترتيب."}</p></div></section>
@@ -297,7 +297,7 @@
     if(q.index>=5) return pathResultView();
     const question=q.question;
     const percent=q.index/5*100;
-    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2><div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
+    return `<div class="quiz-shell"><div class="quiz-head"><div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><span class="quiz-count">${q.index+1} / 5</span></div><section class="question-card"><span class="eyebrow">تدريب المسار</span><h2>${question.prompt}</h2><div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div><div class="answers">${question.options.map(opt=>{let cls="answer"+(question.type==="identify"?"":" text");if(q.answered&&opt.value===question.answer)cls+=" correct";if(q.answered&&opt.value===q.choice&&opt.value!==question.answer)cls+=" wrong";return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;}).join("")}</div>${q.answered?`<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"الإجابة الصحيحة: "+question.explanation}</div><button class="btn green" data-action="next-path-question">${q.index===4?"عرض النتيجة":"السؤال التالي"}</button>`:""}</section></div>`;
   }
 
   function nextPathQuestion(){
@@ -362,33 +362,63 @@
     };
   }
 
-  function makePositionQuestion(focus){
-    const target = focus ?? randomItem(LETTERS);
-    const index = Math.floor(Math.random()*3);
-    const position = ["start","middle","end"][index];
-    const forms = formsFor(target);
-    const formMap = {
-      start: forms.find(x=>x[0]==="أول")?.[1] || target.letter,
-      middle: forms.find(x=>x[0]==="وسط")?.[1] || target.letter,
-      end: forms.find(x=>x[0]==="آخر")?.[1] || target.letter
-    };
-    const slots = ["start","middle","end"].map(pos=>{
-      const active = pos===position;
-      return `<span class="visual-slot ${active?"has-letter":""}" data-pos="${pos}">${active?formMap[pos]:"●"}</span>`;
+  function trainMarkup(activePosition, letter="", compact=false){
+    const order=["end","middle","start"];
+    const cars=order.map(pos=>{
+      const active=pos===activePosition;
+      const content=active && letter ? escapeHTML(letter) : "";
+      return `<span class="train-car ${active?"active":""}">${content}</span>`;
     }).join("");
+    return `<span class="word-train ${compact?"mini":""}" aria-hidden="true"><span class="train-cars">${cars}</span><span class="train-engine"><span class="engine-window"></span><span class="engine-stack"></span></span></span>`;
+  }
+
+  function positionLessonView(){
+    const item=LETTERS[state.selectedLetter];
+    return `
+      <section class="position-lesson">
+        <span class="eyebrow">قبل اللعبة</span>
+        <h2>قطار حرف ${item.letter}</h2>
+        <p>المحرك في اليمين. نبدأ من العربة القريبة منه، ثم الوسط، ثم النهاية.</p>
+        <div class="train-lessons">
+          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في البداية">
+            ${trainMarkup("start",item.letter)}
+            <strong>البداية</strong>
+            <small>قريب من المحرك</small>
+          </button>
+          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في الوسط">
+            ${trainMarkup("middle",item.letter)}
+            <strong>الوسط</strong>
+            <small>في العربة الوسطى</small>
+          </button>
+          <button class="train-lesson-card" data-speak="هذا حرف ${item.name} في النهاية">
+            ${trainMarkup("end",item.letter)}
+            <strong>النهاية</strong>
+            <small>أبعد عربة عن المحرك</small>
+          </button>
+        </div>
+        <button class="btn green path-next" data-action="start-position-game">ابدأ لعبة القطار 🚂</button>
+      </section>`;
+  }
+
+  function makePositionQuestion(focus){
+    const target=focus ?? randomItem(LETTERS);
+    const position=randomItem(["start","middle","end"]);
+    const labels={start:"البداية",middle:"الوسط",end:"النهاية"};
     return {
-      type:"position", letter:target.letter,
-      prompt:`أين حرف ${target.letter}؟`,
-      spoken:`أين حرف ${target.name}؟ اختر مكانه: البداية، الوسط، أو النهاية.`,
-      display:`<div class="position-visual" aria-label="موقع الحرف">${slots}</div>`,
+      type:"position",
+      letter:target.letter,
+      prompt:`أين حرف ${target.letter} في القطار؟`,
+      spoken:`أين حرف ${target.name} في القطار؟ اختر القطار المطابق.`,
+      display:`<div class="train-question">${trainMarkup(position,target.letter)}</div>`,
       html:true,
-      options:[
-        {value:"start",label:"🚪 البداية"},
-        {value:"middle",label:"⬜ الوسط"},
-        {value:"end",label:"🏁 النهاية"}
-      ],
+      options:["start","middle","end"].map(pos=>({
+        value:pos,
+        label:labels[pos],
+        html:trainMarkup(pos,"",true)
+      })),
       answer:position,
-      explanation:`الحرف هنا في ${position==="start"?"البداية":position==="middle"?"الوسط":"النهاية"}.`
+      explanation:`هذا في ${labels[position]}.`,
+      spokenAnswer:`هذا في ${labels[position]}`
     };
   }
 
@@ -438,7 +468,7 @@
               let cls = "answer" + (question.type==="identify"?"":" text");
               if(q.answered && opt.value===question.answer) cls += " correct";
               if(q.answered && opt.value===q.choice && opt.value!==question.answer) cls += " wrong";
-              return `<button class="${cls}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${escapeHTML(opt.label)}</button>`;
+              return `<button class="${cls}${opt.html?" train-answer":""}" aria-label="${escapeHTML(opt.label)}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${opt.html||escapeHTML(opt.label)}</button>`;
             }).join("")}
           </div>
           ${q.answered ? `<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"محاولة جميلة. "+question.explanation}</div>
@@ -457,6 +487,7 @@
     if(correct){ q.score += 1; celebrate(); }
     record(q.question.letter, correct);
     render();
+    if(q.question.type==="position" && q.question.spokenAnswer) setTimeout(()=>speak(q.question.spokenAnswer),120);
   }
 
   function nextQuestion(){
@@ -522,6 +553,7 @@
     else if(state.screen==="path") screen.innerHTML=pathView();
     else if(state.screen==="path-letter") screen.innerHTML=pathLetterView();
     else if(state.screen==="discover") screen.innerHTML=discoverView();
+    else if(state.screen==="position-lesson") screen.innerHTML=positionLessonView();
     else if(state.screen==="path-quiz") screen.innerHTML=pathQuizView();
     else if(state.screen==="learn-list") screen.innerHTML='<div class="section-title"><h2>اختر حرفًا</h2><small>28 حرفًا</small></div>'+alphabetGrid();
     else if(state.screen==="learn") screen.innerHTML=learnView();
@@ -533,7 +565,7 @@
   function bindDynamic(){
     screen.querySelectorAll("[data-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("learn",Number(btn.dataset.letter))));
     screen.querySelectorAll("[data-path-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("path-letter",Number(btn.dataset.pathLetter))));
-    screen.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click",()=>{const stage=btn.dataset.stage;if(stage==="discover")setScreen("discover");else startPathQuiz(stage);}));
+    screen.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click",()=>{const stage=btn.dataset.stage;if(stage==="discover")setScreen("discover");else if(stage==="position")setScreen("position-lesson");else startPathQuiz(stage);}));
     screen.querySelectorAll("[data-answer]").forEach(btn => btn.addEventListener("click",()=>answerQuestion(btn.dataset.answer)));
     screen.querySelectorAll("[data-speak]").forEach(btn => btn.addEventListener("click",()=>speak(btn.dataset.speak)));
     screen.querySelectorAll("[data-action]").forEach(btn => btn.addEventListener("click",()=>{
@@ -542,6 +574,7 @@
       if(action==="open-path") setScreen("path");
       if(action==="open-current-path") setScreen("path-letter",currentPathIndex());
       if(action==="complete-discover"){savePath(LETTERS[state.selectedLetter].letter,{discover:true});setScreen("path-letter");}
+      if(action==="start-position-game") startPathQuiz("position");
       if(action==="next-path-question") nextPathQuestion();
       if(action==="retry-path-stage") startPathQuiz(state.pathQuiz.stage);
       if(action==="back-to-path-letter") setScreen("path-letter");
