@@ -871,3 +871,14 @@ button{cursor:pointer}
   .position-question-word{font-size:48px}
   .position-word-example{padding-inline:9px}
 }
+
+
+/* v1.8.1 — locomotive faces outward to the right */
+.single-engine{
+  transform:scaleX(-1);
+  transform-origin:center;
+}
+.position-answers::after{
+  transform:scaleX(-1);
+  transform-origin:center;
+}
