@@ -710,16 +710,25 @@
       }).join("")}</div></div>`;
   }
 
+  function challengeWrongMessage(q){
+    if(q.type==="sound")return "استمع للصوت مرة أخرى، ثم اختر الشكل المطابق.";
+    if(q.type==="connection")return "انظر إلى شكل م الأحمر واتصاله بالحروف حوله.";
+    return "جرّب أن تلاحظ الحرف الأحمر ومكانه.";
+  }
+
   function challengeShell(q,body){
     const prompt=q.type==="position"?(q.prompt||""):(q.prompt||"");
     const spoken=q.spoken||prompt;
+    const audio=q.type==="sound"
+      ? `<button class="btn soft sound-pill" data-challenge-sound="${escapeHTML(spoken)}" data-sound-kind="${q.soundKind||"vowel"}">🔊 اسمع</button>`
+      : audioButton(spoken);
     return `<section class="card">
       <span class="eyebrow">٧ · تحدي م</span>
       <h2>${prompt}</h2>
-      ${audioButton(spoken)}
+      ${audio}
       ${dots(state.challengeIndex,CHALLENGE.length)}
       ${body}
-      ${state.challengeAnswered?`<div class="feedback ${isCurrentChallengeCorrect()?"good":"bad"}">${isCurrentChallengeCorrect()?"أَحْسَنْتَ! 🌟":"جرّب أن تلاحظ الحرف الأحمر ومكانه."}</div>
+      ${state.challengeAnswered?`<div class="feedback ${isCurrentChallengeCorrect()?"good":"bad"}">${isCurrentChallengeCorrect()?"أَحْسَنْتَ! 🌟":challengeWrongMessage(q)}</div>
       <div class="actions"><button class="btn primary full" data-action="challenge-next">${state.challengeIndex===CHALLENGE.length-1?"النتيجة":"السؤال التالي"}</button></div>`:""}
     </section>`;
   }
@@ -810,6 +819,11 @@
         {text:item.spoken,rate:.46,pauseAfter:80}
       ]);
       render();save();
+    }));
+
+    screen.querySelectorAll("[data-challenge-sound]").forEach(btn=>btn.addEventListener("click",()=>{
+      const rate=btn.dataset.soundKind==="madd"?.46:.50;
+      speakSequence([{text:btn.dataset.challengeSound,rate,pauseAfter:80}]);
     }));
 
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
