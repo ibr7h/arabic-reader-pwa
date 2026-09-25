@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.2.0";
+  const APP_VERSION = "1.3.0";
   const STORE_KEY = "hurufi-progress:v1";
   const state = {
     screen:"home",
@@ -580,45 +580,120 @@
   backBtn.addEventListener("click",()=>setScreen(state.previous||"home"));
   soundBtn.addEventListener("click",()=>{state.sound=!state.sound;if(!state.sound&&"speechSynthesis" in window)speechSynthesis.cancel();render();});
 
-  function showUpdate(registration){
+  function compareVersions(a,b){
+    const aa=String(a).split(".").map(x=>parseInt(x,10)||0);
+    const bb=String(b).split(".").map(x=>parseInt(x,10)||0);
+    const len=Math.max(aa.length,bb.length);
+    for(let i=0;i<len;i++){
+      const diff=(aa[i]||0)-(bb[i]||0);
+      if(diff!==0) return diff>0?1:-1;
+    }
+    return 0;
+  }
+
+  async function fetchPublishedVersion(){
+    try{
+      const response=await fetch("./version.js?check="+Date.now(),{
+        cache:"no-store",
+        headers:{"cache-control":"no-cache"}
+      });
+      if(!response.ok) return null;
+      const text=await response.text();
+      return text.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/)?.[1]||null;
+    }catch{return null;}
+  }
+
+  function setUpdateStatus(title,status,progress=0){
     const bar=document.getElementById("updateBar");
-    const button=document.getElementById("updateNowBtn");
-    if(!bar || !button || !registration?.waiting) return;
+    const titleEl=document.getElementById("updateTitle");
+    const statusEl=document.getElementById("updateStatus");
+    const fill=document.getElementById("updateProgressFill");
+    if(!bar) return;
     bar.hidden=false;
-    button.onclick=()=>{
-      button.disabled=true;
-      button.textContent="جارٍ التحديث…";
-      registration.waiting.postMessage({type:"SKIP_WAITING"});
-    };
+    if(titleEl) titleEl.textContent=title;
+    if(statusEl) statusEl.textContent=status;
+    if(fill) fill.style.width=Math.max(0,Math.min(100,progress))+"%";
   }
 
   function setupAppUpdates(){
+    const versionEl=document.getElementById("appVersion");
+    if(versionEl) versionEl.textContent="v"+APP_VERSION;
     if(!("serviceWorker" in navigator)) return;
-    let refreshing=false;
+
+    let registration=null;
+    let reloading=false;
+    const hadControllerAtStart=!!navigator.serviceWorker.controller;
+    let canReload=hadControllerAtStart;
+
+    const attachRegistration=(reg)=>{
+      registration=reg;
+      reg.addEventListener("updatefound",()=>{
+        const worker=reg.installing;
+        if(!worker || !navigator.serviceWorker.controller) return;
+        setUpdateStatus("يوجد تحديث جديد","جارٍ تنزيل ملفات الإصدار الجديد…",18);
+        worker.addEventListener("statechange",()=>{
+          if(worker.state==="installed"){
+            setUpdateStatus("اكتمل التنزيل","جارٍ تثبيت التحديث…",86);
+            reg.waiting?.postMessage({type:"SKIP_WAITING"});
+          }else if(worker.state==="activating"){
+            setUpdateStatus("جارٍ تفعيل الإصدار","يتم استبدال الملفات القديمة…",96);
+          }
+        });
+      });
+    };
+
+    const check=async(manual=false)=>{
+      if(!navigator.onLine) return;
+      const latest=await fetchPublishedVersion();
+      const newer=latest && compareVersions(latest,APP_VERSION)>0;
+      if(newer){
+        setUpdateStatus("يوجد إصدار جديد","جارٍ بدء التحديث تلقائيًا إلى v"+latest+"…",8);
+      }else if(manual){
+        setUpdateStatus("التطبيق محدث","الإصدار الحالي v"+APP_VERSION,100);
+        setTimeout(()=>{const bar=document.getElementById("updateBar");if(bar)bar.hidden=true;},1800);
+      }
+      try{
+        if(!registration){
+          registration=await navigator.serviceWorker.getRegistration("./")||null;
+          if(registration) attachRegistration(registration);
+        }
+        await registration?.update();
+        registration?.waiting?.postMessage({type:"SKIP_WAITING"});
+      }catch{}
+    };
+
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(refreshing) return;
-      refreshing=true;
-      location.reload();
+      if(!canReload){canReload=true;return;}
+      if(reloading) return;
+      reloading=true;
+      setUpdateStatus("تم التحديث بنجاح","إعادة فتح حروفي على الإصدار الجديد…",100);
+      setTimeout(()=>location.reload(),650);
     });
+
+    document.addEventListener("visibilitychange",()=>{
+      if(document.visibilityState==="visible") check();
+    });
+    window.addEventListener("online",()=>check());
+
     window.addEventListener("load",async()=>{
       try{
-        const registration=await navigator.serviceWorker.register("./sw.js");
-        if(registration.waiting) showUpdate(registration);
-        registration.addEventListener("updatefound",()=>{
-          const worker=registration.installing;
-          if(!worker) return;
-          worker.addEventListener("statechange",()=>{
-            if(worker.state==="installed" && navigator.serviceWorker.controller){
-              showUpdate(registration);
-            }
-          });
-        });
-        registration.update().catch(()=>{});
-        document.addEventListener("visibilitychange",()=>{
-          if(document.visibilityState==="visible") registration.update().catch(()=>{});
-        });
+        const reg=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+        attachRegistration(reg);
+        await check();
       }catch{}
     });
+
+    setInterval(()=>check(),30*60*1000);
+
+    try{
+      const key="hurufi:app-version";
+      const previous=localStorage.getItem(key);
+      if(previous && previous!==APP_VERSION){
+        setUpdateStatus("تم تحديث حروفي","أنت الآن على الإصدار v"+APP_VERSION,100);
+        setTimeout(()=>{const bar=document.getElementById("updateBar");if(bar)bar.hidden=true;},2200);
+      }
+      localStorage.setItem(key,APP_VERSION);
+    }catch{}
   }
 
   setupAppUpdates();
