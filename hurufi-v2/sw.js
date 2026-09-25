@@ -1,12 +1,20 @@
-const CACHE="hurufi-v2-alpha3";
-const VERSION="2.0.0-alpha.3";
+const CACHE="hurufi-v2-alpha4";
+const VERSION="2.0.0-alpha.4";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
+  ["./fonts.css","./fonts.css?v="+VERSION],
   ["./app.js","./app.js?v="+VERSION],
   ["./manifest.webmanifest","./manifest.webmanifest?v="+VERSION]
 ];
-const STATIC=["../assets/icons/icon-192.png","../assets/icons/icon-512.png"];
+const STATIC=[
+  "../assets/icons/icon-192.png",
+  "../assets/icons/icon-512.png",
+  "./assets/fonts/NotoNaskhArabic-VF.ttf",
+  "./assets/fonts/BalooBhaijaan2-VF.ttf",
+  "./assets/fonts/Cairo-VF.ttf",
+  "./assets/fonts/ReadexPro-VF.ttf"
+];
 
 async function cacheFresh(cache,key,url){
   const response=await fetch(url,{cache:"reload"});
@@ -65,9 +73,9 @@ self.addEventListener("fetch",event=>{
     return;
   }
 
-  if(url.origin===location.origin&&/\/(app\.js|styles\.css|manifest\.webmanifest)$/.test(url.pathname)){
+  if(url.origin===location.origin&&/\/(app\.js|styles\.css|fonts\.css|manifest\.webmanifest)$/.test(url.pathname)){
     event.respondWith((async()=>{
-      const key=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
+      const key=url.pathname.endsWith("/app.js")?"./app.js":url.pathname.endsWith("/fonts.css")?"./fonts.css":url.pathname.endsWith("/styles.css")?"./styles.css":"./manifest.webmanifest";
       try{
         const response=await fetch(event.request,{cache:"no-store"});
         if(response.ok){
