@@ -399,3 +399,53 @@ button{cursor:pointer}
   .font-options button{min-height:96px;padding:8px 5px}
   .font-preview{font-size:30px}
 }
+
+
+/* v1.6.3 — reliable font switching */
+.font-status{
+  min-height:20px;
+  margin-top:9px;
+  padding:0 4px;
+  text-align:center;
+  font-size:9px;
+  font-weight:800;
+  color:var(--muted)
+}
+.font-status.loading{color:#7a6328}
+.font-status.success{color:var(--green)}
+.font-status.error{color:var(--rose)}
+.font-options button.loading{
+  opacity:.72;
+  position:relative
+}
+.font-options button.loading::after{
+  content:"";
+  position:absolute;
+  top:8px;
+  left:8px;
+  width:13px;
+  height:13px;
+  border:2px solid #c7d9d2;
+  border-top-color:var(--green);
+  border-radius:50%;
+  animation:fontSpin .7s linear infinite
+}
+@keyframes fontSpin{to{transform:rotate(360deg)}}
+
+.join-core,
+.word-join-form,
+.font-preview,
+.giant-letter,
+.discover-letter,
+.letter-tile,
+.path-big-letter,
+.placement-letter,
+.prompt-letter,
+.cell-content{
+  font-kerning:normal;
+  font-variant-ligatures:common-ligatures contextual;
+  font-feature-settings:"rlig" 1,"calt" 1,"liga" 1;
+  text-rendering:optimizeLegibility;
+  unicode-bidi:isolate;
+  direction:rtl
+}
