@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.4";
+  const VERSION="2.0.0-alpha.5";
   const TARGET="م";
   const TARGET_SPOKEN="مِيم";
   const STORAGE_KEY="hurufi-v2:golden-meem";
