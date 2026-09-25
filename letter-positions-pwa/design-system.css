@@ -1,0 +1,486 @@
+/* Hurufi UI System v1.0
+   Inspired by the discipline of ChunUI, adapted for a children's Arabic PWA.
+   UI typography uses 13 / 17 / 24. Educational glyphs may exceed this scale.
+*/
+:root{
+  /* semantic palette */
+  --ui-bg:#f6f4ee;
+  --ui-surface:#fffefa;
+  --ui-surface-raised:#ffffff;
+  --ui-surface-muted:#efede7;
+  --ui-ink:#24312d;
+  --ui-muted:#78837f;
+  --ui-line:#e4e0d7;
+  --ui-brand:#2f7d67;
+  --ui-brand-strong:#276b59;
+  --ui-brand-soft:#e8f3ee;
+  --ui-target:#c94151;
+  --ui-target-soft:#fff0f2;
+
+  /* typography: UI only */
+  --ui-text-sm:13px;
+  --ui-text-base:17px;
+  --ui-text-lg:24px;
+  --ui-line-tight:1.25;
+  --ui-line-body:1.65;
+
+  /* spacing */
+  --ui-space-1:4px;
+  --ui-space-2:8px;
+  --ui-space-3:12px;
+  --ui-space-4:16px;
+  --ui-space-5:20px;
+  --ui-space-6:24px;
+  --ui-space-8:32px;
+
+  /* geometry */
+  --ui-radius-sm:12px;
+  --ui-radius-md:18px;
+  --ui-radius-lg:26px;
+  --ui-radius-pill:999px;
+
+  /* texture */
+  --ui-shadow-1:0 1px 1px rgba(36,49,45,.05),0 5px 14px rgba(36,49,45,.06);
+  --ui-shadow-2:0 2px 2px rgba(36,49,45,.05),0 12px 28px rgba(36,49,45,.10);
+  --ui-inset:inset 0 1px 0 rgba(255,255,255,.84);
+
+  /* motion */
+  --ui-ease:cubic-bezier(.2,.8,.2,1);
+  --ui-fast:140ms;
+  --ui-normal:220ms;
+
+  /* bridge old variables to the new semantic system */
+  --paper:var(--ui-surface);
+  --ink:var(--ui-ink);
+  --muted:var(--ui-muted);
+  --line:var(--ui-line);
+  --green:var(--ui-brand);
+  --green-soft:var(--ui-brand-soft);
+  --letter-red:var(--ui-target);
+  --letter-red-soft:var(--ui-target-soft);
+  --shadow:var(--ui-shadow-2);
+}
+
+html,body{
+  background:var(--ui-bg);
+  color:var(--ui-ink);
+}
+
+body{
+  font-size:var(--ui-text-base);
+  line-height:var(--ui-line-body);
+}
+
+button{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--ui-brand) 28%,transparent);
+  outline-offset:2px;
+}
+
+/* App chrome */
+.app-shell{
+  background:transparent;
+}
+
+.topbar{
+  min-height:72px;
+  padding:calc(var(--ui-space-2) + env(safe-area-inset-top)) var(--ui-space-4) var(--ui-space-2);
+  border-bottom:1px solid color-mix(in srgb,var(--ui-line) 72%,transparent);
+  background:color-mix(in srgb,var(--ui-bg) 86%,transparent);
+  box-shadow:0 1px 0 rgba(255,255,255,.62);
+}
+
+@supports ((backdrop-filter:blur(18px)) or (-webkit-backdrop-filter:blur(18px))){
+  .topbar,.bottom-nav,.font-panel{
+    background:color-mix(in srgb,var(--ui-surface) 78%,transparent);
+    -webkit-backdrop-filter:blur(20px) saturate(1.25);
+    backdrop-filter:blur(20px) saturate(1.25);
+  }
+}
+
+.brand strong{
+  font-size:var(--ui-text-base);
+  font-weight:800;
+  letter-spacing:-.01em;
+}
+
+.brand small,
+.app-version{
+  font-size:var(--ui-text-sm);
+}
+
+.brand small{
+  opacity:.78;
+  margin-top:1px;
+}
+
+.app-version{
+  width:max-content;
+  margin-top:2px;
+  padding:2px 7px;
+  border-radius:var(--ui-radius-pill);
+  background:var(--ui-surface-muted);
+  color:var(--ui-muted);
+  line-height:1.35;
+}
+
+.brand-mark{
+  width:42px;
+  height:42px;
+  border-radius:15px;
+  font-family:var(--learning-font);
+  font-size:var(--ui-text-lg);
+  font-weight:700;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ui-brand) 92%,white),var(--ui-brand));
+  box-shadow:var(--ui-inset),0 7px 18px rgba(47,125,103,.18);
+}
+
+.icon-btn{
+  width:44px;
+  height:44px;
+  border:1px solid var(--ui-line);
+  border-radius:15px;
+  background:linear-gradient(180deg,#fff,var(--ui-surface));
+  color:var(--ui-ink);
+  box-shadow:var(--ui-inset),var(--ui-shadow-1);
+  transition:transform var(--ui-fast) var(--ui-ease),box-shadow var(--ui-fast) var(--ui-ease);
+}
+
+.icon-btn:active{
+  transform:translateY(1px) scale(.97);
+  box-shadow:var(--ui-inset),0 2px 6px rgba(36,49,45,.08);
+}
+
+.screen{
+  padding:var(--ui-space-4) var(--ui-space-4) var(--ui-space-8);
+}
+
+/* Typography */
+.section-title{
+  margin:var(--ui-space-6) 2px var(--ui-space-3);
+  align-items:center;
+}
+
+.section-title h2,
+.question-card h2,
+.path-letter-head h1,
+.discover-card h2,
+.joining-lesson h2,
+.position-lesson h2{
+  font-size:var(--ui-text-lg);
+  line-height:var(--ui-line-tight);
+  letter-spacing:-.015em;
+}
+
+.section-title small,
+.eyebrow,
+.question-card .eyebrow,
+.quiz-count,
+.path-copy small,
+.stage-row small,
+.progress-copy small,
+.position-chip,
+.connection-note,
+.train-key span,
+.train-explain,
+.forms-note,
+.joining-rule,
+.joining-fact{
+  font-size:var(--ui-text-sm);
+}
+
+.hero h1{
+  font-size:var(--ui-text-lg);
+  line-height:1.45;
+}
+
+.hero p,
+.path-intro,
+.discover-card p{
+  font-size:var(--ui-text-sm);
+  line-height:var(--ui-line-body);
+}
+
+/* Unified surfaces */
+.card,
+.question-card,
+.discover-card,
+.path-letter-head,
+.joining-lesson,
+.position-lesson,
+.path-row,
+.stage-row,
+.example-row,
+.stat,
+.font-options button,
+.position-word-example,
+.joining-card,
+.joining-summary-card{
+  border:1px solid var(--ui-line);
+  background:var(--ui-surface);
+  box-shadow:var(--ui-inset),var(--ui-shadow-1);
+}
+
+.card,
+.question-card,
+.discover-card,
+.joining-lesson,
+.position-lesson{
+  border-radius:var(--ui-radius-lg);
+}
+
+.path-row,
+.stage-row,
+.example-row,
+.stat,
+.font-options button,
+.position-word-example,
+.joining-card,
+.joining-summary-card{
+  border-radius:var(--ui-radius-md);
+}
+
+.question-card{
+  padding:var(--ui-space-5);
+  box-shadow:var(--ui-inset),var(--ui-shadow-2);
+}
+
+/* Buttons: subtle neo-realistic texture */
+.btn,
+.question-audio,
+.how-btn{
+  min-height:48px;
+  border-radius:16px;
+  font-size:var(--ui-text-base);
+  font-weight:750;
+  box-shadow:var(--ui-inset),var(--ui-shadow-1);
+  transition:
+    transform var(--ui-fast) var(--ui-ease),
+    box-shadow var(--ui-fast) var(--ui-ease),
+    filter var(--ui-fast) var(--ui-ease);
+}
+
+.btn:active,
+.question-audio:active,
+.how-btn:active{
+  transform:translateY(1px) scale(.985);
+  box-shadow:var(--ui-inset),0 2px 7px rgba(36,49,45,.08);
+}
+
+.btn.green,
+.btn.primary{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ui-brand) 93%,white),var(--ui-brand-strong));
+  color:#fff;
+  border:1px solid color-mix(in srgb,var(--ui-brand-strong) 70%,transparent);
+}
+
+.btn.soft,
+.question-audio{
+  background:linear-gradient(180deg,#f4faf7,var(--ui-brand-soft));
+  color:var(--ui-brand-strong);
+  border:1px solid color-mix(in srgb,var(--ui-brand) 18%,var(--ui-line));
+}
+
+.btn.ghost,
+.how-btn{
+  background:linear-gradient(180deg,#fff,var(--ui-surface));
+  color:var(--ui-ink);
+  border:1px solid var(--ui-line);
+}
+
+/* Lists and interactive cards */
+.path-row,
+.stage-row,
+.letter-tile,
+.answer,
+.position-word-example,
+.joining-card,
+.font-options button{
+  transition:
+    transform var(--ui-fast) var(--ui-ease),
+    box-shadow var(--ui-fast) var(--ui-ease),
+    border-color var(--ui-fast) var(--ui-ease),
+    background var(--ui-fast) var(--ui-ease);
+}
+
+.path-row:active,
+.stage-row:active,
+.letter-tile:active,
+.answer:active,
+.position-word-example:active,
+.joining-card:active,
+.font-options button:active{
+  transform:translateY(1px) scale(.988);
+}
+
+.path-row.active,
+.stage-row.done,
+.path-row.done{
+  border-color:color-mix(in srgb,var(--ui-brand) 30%,var(--ui-line));
+  background:color-mix(in srgb,var(--ui-brand-soft) 64%,var(--ui-surface));
+}
+
+.letter-tile{
+  border-radius:15px;
+  border:1px solid var(--ui-line);
+  background:linear-gradient(180deg,#fff,var(--ui-surface));
+  box-shadow:var(--ui-inset),0 3px 9px rgba(36,49,45,.045);
+}
+
+/* Educational red is intentionally limited to the target letter inside words */
+.word .target,
+.whole-word .target,
+.example-row .target,
+.position-word .target,
+.position-question-word .target,
+.contextual-target{
+  color:var(--ui-target)!important;
+  background:transparent!important;
+}
+
+/* Answers */
+.answer{
+  border:1px solid var(--ui-line);
+  background:linear-gradient(180deg,#fff,var(--ui-surface));
+  box-shadow:var(--ui-inset),var(--ui-shadow-1);
+}
+
+.answer.correct{
+  border-color:color-mix(in srgb,var(--ui-brand) 55%,var(--ui-line));
+  background:var(--ui-brand-soft);
+  color:var(--ui-brand-strong);
+}
+
+.answer.wrong{
+  border-color:color-mix(in srgb,var(--ui-target) 42%,var(--ui-line));
+  background:var(--ui-target-soft);
+  color:#8d3542;
+}
+
+/* Progress */
+.progress-track,
+.path-meter,
+.bar{
+  background:var(--ui-surface-muted);
+}
+
+.progress-fill,
+.path-meter span,
+.bar span{
+  background:var(--ui-brand);
+}
+
+/* Bottom navigation */
+.bottom-nav{
+  gap:4px;
+  padding:7px 10px calc(7px + env(safe-area-inset-bottom));
+  border-top:1px solid color-mix(in srgb,var(--ui-line) 80%,transparent);
+  box-shadow:0 -8px 24px rgba(36,49,45,.045);
+}
+
+.bottom-nav button{
+  min-height:54px;
+  border-radius:16px;
+  color:var(--ui-muted);
+  transition:background var(--ui-fast) var(--ui-ease),transform var(--ui-fast) var(--ui-ease);
+}
+
+.bottom-nav button span{
+  font-size:var(--ui-text-lg);
+  line-height:1;
+}
+
+.bottom-nav button small{
+  font-size:var(--ui-text-sm);
+  line-height:1.2;
+}
+
+.bottom-nav button:active{
+  transform:scale(.97);
+}
+
+.bottom-nav button.active{
+  background:var(--ui-brand-soft);
+  color:var(--ui-brand-strong);
+  box-shadow:var(--ui-inset);
+}
+
+/* Unified sheet */
+.font-panel{
+  padding:var(--ui-space-4);
+  border:1px solid color-mix(in srgb,var(--ui-line) 85%,transparent);
+  border-radius:var(--ui-radius-lg);
+  box-shadow:0 24px 60px rgba(36,49,45,.20),var(--ui-inset);
+}
+
+.font-panel-head strong{
+  font-size:var(--ui-text-base);
+}
+
+.font-panel-head small,
+.font-options button small,
+.font-options button strong,
+.font-section-title,
+.font-status{
+  font-size:var(--ui-text-sm);
+}
+
+.font-section-title{
+  color:var(--ui-muted);
+}
+
+.font-options button.active{
+  border-color:color-mix(in srgb,var(--ui-brand) 48%,var(--ui-line));
+  background:var(--ui-brand-soft);
+  box-shadow:var(--ui-inset),0 5px 14px rgba(47,125,103,.08);
+}
+
+/* Train uses the same component texture */
+.single-engine{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ui-brand) 92%,white),var(--ui-brand-strong));
+  border-color:color-mix(in srgb,var(--ui-brand-strong) 72%,transparent);
+  box-shadow:var(--ui-inset),0 7px 17px rgba(47,125,103,.16);
+}
+
+.single-wagon,
+.train-wagon-choice{
+  background:linear-gradient(180deg,#fff,var(--ui-surface));
+  border-color:var(--ui-line);
+  box-shadow:var(--ui-inset),0 4px 10px rgba(36,49,45,.05);
+}
+
+.single-wagon.active{
+  background:var(--ui-brand-soft);
+  border-color:color-mix(in srgb,var(--ui-brand) 48%,var(--ui-line));
+}
+
+/* Animation discipline */
+@media (prefers-reduced-motion:no-preference){
+  .screen > *{
+    animation:uiReveal var(--ui-normal) var(--ui-ease) both;
+  }
+}
+
+@keyframes uiReveal{
+  from{opacity:.01;transform:translateY(4px)}
+  to{opacity:1;transform:none}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
+
+@media(max-width:430px){
+  .screen{padding-inline:var(--ui-space-3)}
+  .question-card{padding:var(--ui-space-4)}
+}
