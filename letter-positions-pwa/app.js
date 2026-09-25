@@ -454,15 +454,14 @@
 
   function positionBoard(activePosition, letter="", compact=false, withLabels=false){
     const slots=[
-      {id:"start",num:"١",label:"البداية"},
-      {id:"middle",num:"٢",label:"الوسط"},
-      {id:"end",num:"٣",label:"النهاية"}
+      {id:"start",label:"البداية"},
+      {id:"middle",label:"الوسط"},
+      {id:"end",label:"النهاية"}
     ];
     return `<div class="position-board ${compact?"compact":""}">
-      <div class="reading-direction"><span class="start-here">ابدأ هنا</span><span class="direction-arrow">←</span></div>
+      <div class="reading-direction"><span class="start-here">نبدأ من اليمين</span><span class="direction-arrow">←</span></div>
       <div class="position-slots">
         ${slots.map(slot=>`<span class="position-cell ${slot.id===activePosition?"active":""}">
-          <span class="cell-number">${slot.num}</span>
           <span class="cell-content">${slot.id===activePosition && letter ? escapeHTML(letter) : "•"}</span>
           ${withLabels?`<small>${slot.label}</small>`:""}
         </span>`).join("")}
@@ -472,7 +471,7 @@
 
   function positionHelpMarkup(letter){
     return `<div class="position-help">
-      <div class="help-head"><strong>كيف أعرف المكان؟</strong><button type="button" data-speak="نبدأ من اليمين. الخانة الأولى هي البداية، والثانية هي الوسط، والثالثة هي النهاية.">🔊 اسمع</button></div>
+      <div class="help-head"><strong>كيف أعرف المكان؟</strong><button type="button" data-speak="نبدأ من اليمين. الخانة اليمنى هي البداية، والخانة التي في المنتصف هي الوسط، والخانة اليسرى هي النهاية.">🔊 اسمع</button></div>
       <p>لا تنظر إلى شكل الحرف لتعرف مكانه. انظر فقط إلى <strong>الخانة التي يوجد فيها</strong>.</p>
       <div class="help-examples">
         <div>${positionBoard("start",letter,true,true)}</div>
@@ -488,16 +487,16 @@
       <section class="position-lesson">
         <span class="eyebrow">تعلّم قبل الاختبار</span>
         <h2>أين يوجد حرف ${item.letter}؟</h2>
-        <button class="question-audio" data-speak="نبدأ من اليمين. واحد يعني البداية، اثنان يعني الوسط، ثلاثة يعني النهاية.">🔊 اسمع الشرح</button>
+        <button class="question-audio" data-speak="نبدأ من اليمين. اليمين هو البداية، ثم الوسط، ثم النهاية في اليسار.">🔊 اسمع الشرح</button>
         <div class="lesson-direction">نبدأ من اليمين <b>←</b></div>
         <div class="position-teaching-cards">
-          <button class="position-teach-card" data-speak="حرف ${item.name} في البداية. الخانة رقم واحد.">
+          <button class="position-teach-card" data-speak="حرف ${item.name} في البداية، في الجهة اليمنى.">
             ${positionBoard("start",item.letter,false,true)}
           </button>
-          <button class="position-teach-card" data-speak="حرف ${item.name} في الوسط. الخانة رقم اثنين.">
+          <button class="position-teach-card" data-speak="حرف ${item.name} في الوسط، في المنتصف.">
             ${positionBoard("middle",item.letter,false,true)}
           </button>
-          <button class="position-teach-card" data-speak="حرف ${item.name} في النهاية. الخانة رقم ثلاثة.">
+          <button class="position-teach-card" data-speak="حرف ${item.name} في النهاية، في الجهة اليسرى.">
             ${positionBoard("end",item.letter,false,true)}
           </button>
         </div>
@@ -521,10 +520,10 @@
       options:["start","middle","end"].map(pos=>({
         value:pos,
         label:labels[pos],
-        html:`<span class="placement-choice"><span class="choice-number">${pos==="start"?"١":pos==="middle"?"٢":"٣"}</span><span class="choice-box"></span></span>`
+        html:`<span class="placement-choice"><span class="choice-box"></span></span>`
       })),
       answer:position,
-      explanation:`${labels[position]} هي الخانة رقم ${position==="start"?"١":position==="middle"?"٢":"٣"} من اليمين.`,
+      explanation:`${labels[position]}: ${position==="start"?"الخانة اليمنى":position==="middle"?"الخانة التي في المنتصف":"الخانة اليسرى"}.`,
       spokenAnswer:`أحسنت. هذا هو ${labels[position]}`
     };
   }
