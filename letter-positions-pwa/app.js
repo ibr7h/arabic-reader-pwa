@@ -270,7 +270,7 @@
     const stages=[
       ["discover","👀","أتعرّف","أرى الحرف وأسمع اسمه",true],
       ["identify","🔎","أميّز","أختار الحرف من بين حروف أخرى",p.discover],
-      ["position","🧩","أحدد موقعه","أعرف أول ووسط وآخر الكلمة",p.identify],
+      ["position","🧩","أعرف مكانه","أحدد البداية والوسط والنهاية بصريًا",p.identify],
       ["mastery","⭐","أتقن","اختبار يفتح الحرف التالي",p.position]
     ];
     return `<section class="path-letter-head"><div class="path-big-letter">${item.letter}</div><div><small>المسار الحالي</small><h1>حرف ${item.name}</h1><p>${p.mastery?"تم إتقان هذا الحرف.":"أكمل المراحل بالترتيب."}</p></div></section>
@@ -285,7 +285,7 @@
 
   function startPathQuiz(stage){
     const focus=LETTERS[state.selectedLetter];
-    const make=()=>stage==="identify"?makeIdentifyQuestion(focus):stage==="position"?randomItem([makePositionQuestion,makeShapeQuestion])(focus):newQuestion(focus);
+    const make=()=>stage==="identify"?makeIdentifyQuestion(focus):stage==="position"?makePositionQuestion(focus):newQuestion(focus);
     state.pathQuiz={stage,index:0,score:0,answered:false,choice:null,focus,question:make(),make};
     state.screen="path-quiz";
     render();
@@ -365,19 +365,30 @@
   function makePositionQuestion(focus){
     const target = focus ?? randomItem(LETTERS);
     const index = Math.floor(Math.random()*3);
-    const word = target.words[index];
+    const position = ["start","middle","end"][index];
+    const forms = formsFor(target);
+    const formMap = {
+      start: forms.find(x=>x[0]==="أول")?.[1] || target.letter,
+      middle: forms.find(x=>x[0]==="وسط")?.[1] || target.letter,
+      end: forms.find(x=>x[0]==="آخر")?.[1] || target.letter
+    };
+    const slots = ["start","middle","end"].map(pos=>{
+      const active = pos===position;
+      return `<span class="visual-slot ${active?"has-letter":""}" data-pos="${pos}">${active?formMap[pos]:"●"}</span>`;
+    }).join("");
     return {
       type:"position", letter:target.letter,
-      prompt:`أين يقع حرف ${target.letter} في الكلمة؟`,
-      display:highlight(word,target.letter),
+      prompt:`أين حرف ${target.letter}؟`,
+      spoken:`أين حرف ${target.name}؟ اختر مكانه: البداية، الوسط، أو النهاية.`,
+      display:`<div class="position-visual" aria-label="موقع الحرف">${slots}</div>`,
       html:true,
       options:[
-        {value:"start",label:"أول الكلمة"},
-        {value:"middle",label:"وسط الكلمة"},
-        {value:"end",label:"آخر الكلمة"}
+        {value:"start",label:"🚪 البداية"},
+        {value:"middle",label:"⬜ الوسط"},
+        {value:"end",label:"🏁 النهاية"}
       ],
-      answer:["start","middle","end"][index],
-      explanation:`حرف ${target.letter} هنا في ${["أول","وسط","آخر"][index]} الكلمة.`
+      answer:position,
+      explanation:`الحرف هنا في ${position==="start"?"البداية":position==="middle"?"الوسط":"النهاية"}.`
     };
   }
 
@@ -420,7 +431,7 @@
         </div>
         <section class="question-card">
           <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"موقع الحرف":"شكل الحرف"}</span>
-          <h2>${question.prompt}</h2>
+          <h2>${question.prompt}</h2>${question.spoken?`<button class="question-audio" data-speak="${escapeHTML(question.spoken)}" type="button">🔊 اسمع السؤال</button>`:""}
           <div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
           <div class="answers">
             ${question.options.map(opt => {
@@ -524,6 +535,7 @@
     screen.querySelectorAll("[data-path-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("path-letter",Number(btn.dataset.pathLetter))));
     screen.querySelectorAll("[data-stage]").forEach(btn => btn.addEventListener("click",()=>{const stage=btn.dataset.stage;if(stage==="discover")setScreen("discover");else startPathQuiz(stage);}));
     screen.querySelectorAll("[data-answer]").forEach(btn => btn.addEventListener("click",()=>answerQuestion(btn.dataset.answer)));
+    screen.querySelectorAll("[data-speak]").forEach(btn => btn.addEventListener("click",()=>speak(btn.dataset.speak)));
     screen.querySelectorAll("[data-action]").forEach(btn => btn.addEventListener("click",()=>{
       const action=btn.dataset.action;
       if(action==="start-learn") setScreen("learn-list");
