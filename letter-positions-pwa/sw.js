@@ -1,4 +1,4 @@
-const CACHE = "hurufi-letter-positions-v1";
+const CACHE = "hurufi-letter-positions-v2";
 const CORE = [
   "./",
   "./index.html",
