@@ -383,16 +383,14 @@ p{font-size:var(--sm);line-height:1.75;color:var(--muted)}
 }
 
 /* Keep every educational font readable at the same optical size */
-:root[data-learning-font="scheherazade"] .hero-letter,
+:root[data-learning-font="scheherazade"] .hero-letter{font-size:calc(var(--glyph-hero) * 1.03)}
 :root[data-learning-font="scheherazade"] .letter-choice,
-:root[data-learning-font="scheherazade"] .challenge-option.letter-option{
-  font-size:calc(var(--glyph-choice) * 1.08)
-}
-:root[data-learning-font="harmattan"] .hero-letter,
+:root[data-learning-font="scheherazade"] .challenge-option.letter-option{font-size:calc(var(--glyph-choice) * 1.08)}
+:root[data-learning-font="scheherazade"] .big-word{font-size:calc(var(--glyph-word) * 1.05)}
+:root[data-learning-font="harmattan"] .hero-letter{font-size:calc(var(--glyph-hero) * 1.06)}
 :root[data-learning-font="harmattan"] .letter-choice,
-:root[data-learning-font="harmattan"] .challenge-option.letter-option{
-  font-size:calc(var(--glyph-choice) * 1.10)
-}
+:root[data-learning-font="harmattan"] .challenge-option.letter-option{font-size:calc(var(--glyph-choice) * 1.10)}
+:root[data-learning-font="harmattan"] .big-word{font-size:calc(var(--glyph-word) * 1.06)}
 :root[data-learning-font="kufi"] .big-word{
   letter-spacing:.01em
 }
