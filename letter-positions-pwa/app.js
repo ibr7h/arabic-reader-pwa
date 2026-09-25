@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.7.0";
+  const APP_VERSION = "1.7.1";
   const STORE_KEY = "hurufi-progress:v1";
   const FONT_KEY = "hurufi:learning-font";
   const FONT_OPTIONS = ["geeza","sf","naskh","baloo","marhey","lalezar","changa","school","cairo","readex"];
@@ -568,6 +568,18 @@
     </div>`;
   }
 
+  function wordForPosition(item,position){
+    const index=position==="start"?0:position==="middle"?1:2;
+    return item.words[index] || item.words[0] || item.letter;
+  }
+
+  function positionWordMarkup(item,position){
+    const word=wordForPosition(item,position);
+    return `<div class="position-word-card">
+      <span class="position-word">${highlight(word,item.letter)}</span>
+    </div>`;
+  }
+
   function positionHelpMarkup(letter){
     return `<div class="position-help train-help">
       <div class="help-head">
@@ -581,20 +593,25 @@
 
   function positionLessonView(){
     const item=LETTERS[state.selectedLetter];
+    const cases=[
+      {pos:"start",label:"البداية"},
+      {pos:"middle",label:"الوسط"},
+      {pos:"end",label:"النهاية"}
+    ];
     return `
       <section class="position-lesson train-lesson">
         <span class="eyebrow">تعلّم قبل الاختبار</span>
-        <h2>قطار حرف ${item.letter}</h2>
-        <button class="question-audio" data-speak="هذا قطار الكلمة. نبدأ من جهة المحرك في اليمين. العربة الأولى هي البداية، ثم الوسط، ثم النهاية.">🔊 اسمع الشرح</button>
-        <p class="train-explain">المحرك يحدد لنا <strong>بداية الكلمة</strong>. كلما ابتعدنا عنه نصل إلى الوسط ثم النهاية.</p>
-        ${trainWagonsMarkup(item.letter,"start",true)}
-        <div class="train-key">
-          <span><b>🚂</b> المحرك</span>
-          <span><b>البداية</b> أقرب عربة</span>
-          <span><b>الوسط</b> العربة الثانية</span>
-          <span><b>النهاية</b> أبعد عربة</span>
+        <h2>أين حرف ${item.letter} في الكلمة؟</h2>
+        <button class="question-audio" data-speak="انظر إلى الكلمة. الحرف الملوّن بالأحمر هو الحرف الذي نتعلمه. ثم انظر إلى القطار لتعرف هل هو في البداية أو الوسط أو النهاية.">🔊 اسمع الشرح</button>
+        <p class="train-explain">الحرف <strong class="red-word-hint">الأحمر</strong> هو الحرف الذي نبحث عنه. القطار يوضح مكانه فقط.</p>
+        <div class="position-word-examples">
+          ${cases.map(({pos,label})=>`
+            <button class="position-word-example" data-speak="حرف ${item.name} في ${label}.">
+              ${positionWordMarkup(item,pos)}
+              ${trainWagonsMarkup(item.letter,pos,true)}
+            </button>`).join("")}
         </div>
-        <div class="position-rule"><strong>مهم:</strong> القطار يعلّم مكان الحرف فقط. شكل اتصال الحرف نتعلمه في المرحلة التالية.</div>
+        <div class="position-rule"><strong>مهم:</strong> اقرأ الشكل بصريًا فقط: أين يوجد الحرف الأحمر داخل الكلمة؟</div>
         <button class="btn green path-next" data-action="start-position-game">ابدأ لعبة القطار 🚂</button>
       </section>`;
   }
@@ -603,12 +620,13 @@
     const target=focus ?? randomItem(LETTERS);
     const position=randomItem(["start","middle","end"]);
     const labels={start:"البداية",middle:"الوسط",end:"النهاية"};
+    const word=wordForPosition(target,position);
     return {
       type:"position",
       letter:target.letter,
-      prompt:`ضع حرف ${target.letter} في ${labels[position]}`,
-      spoken:`ضع حرف ${target.name} في ${labels[position]}. اختر عربة واحدة في القطار.`,
-      display:`<div class="train-letter-token">${target.letter}</div>`,
+      prompt:`أين حرف ${target.letter} في كلمة ${word}؟`,
+      spoken:`أين حرف ${target.name} في كلمة ${word}؟ اضغط العربة التي تمثل مكان الحرف الأحمر.`,
+      display:`<div class="position-question-word">${highlight(word,target.letter)}</div><div class="train-question-caption">اختر مكان الحرف الأحمر في القطار</div>`,
       html:true,
       help:positionHelpMarkup(target.letter),
       options:["start","middle","end"].map(pos=>({
@@ -617,8 +635,8 @@
         html:`<span class="train-wagon-choice" data-train-pos="${pos}"><span class="wagon-dot">•</span><i class="wheel"></i></span>`
       })),
       answer:position,
-      explanation:`${labels[position]} هي ${position==="start"?"العربة القريبة من المحرك":position==="middle"?"العربة الوسطى":"العربة الأبعد عن المحرك"}.`,
-      spokenAnswer:`أحسنت. هذا هو ${labels[position]}`
+      explanation:`حرف ${target.letter} الأحمر في ${labels[position]} من كلمة ${word}.`,
+      spokenAnswer:`أحسنت. حرف ${target.name} في ${labels[position]}`
     };
   }
 
