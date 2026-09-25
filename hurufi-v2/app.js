@@ -1,21 +1,20 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.3";
+  const VERSION="2.0.0-alpha.4";
   const TARGET="م";
   const TARGET_SPOKEN="مِيم";
   const STORAGE_KEY="hurufi-v2:golden-meem";
   const FONT_KEY="hurufi-v2:learning-font";
-  const FONT_OPTIONS=["school","baloo","marhey","cairo","readex","geeza"];
+  const FONT_OPTIONS=["school","baloo","cairo","readex","geeza"];
   const FONT_FAMILIES={
-    school:"Noto Naskh Arabic",
-    baloo:"Baloo Bhaijaan 2",
-    marhey:"Marhey",
-    cairo:"Cairo",
-    readex:"Readex Pro",
+    school:"Hurufi Naskh",
+    baloo:"Hurufi Baloo",
+    cairo:"Hurufi Cairo",
+    readex:"Hurufi Readex",
     geeza:"Geeza Pro"
   };
-  const WEB_FONTS=new Set(["school","baloo","marhey","cairo","readex"]);
+  const WEB_FONTS=new Set(["school","baloo","cairo","readex"]);
 
   const EXAMPLES=[
     {word:"موز", spoken:"مَوْز", targetIndex:0, position:"start", connection:"next", label:"البداية"},
