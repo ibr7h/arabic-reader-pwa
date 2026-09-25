@@ -39,7 +39,7 @@
     { id:"isolated", label:"منفصل" }
   ];
 
-  const APP_VERSION = "1.6.5";
+  const APP_VERSION = "1.7.0";
   const STORE_KEY = "hurufi-progress:v1";
   const FONT_KEY = "hurufi:learning-font";
   const FONT_OPTIONS = ["geeza","sf","naskh","baloo","marhey","lalezar","changa","school","cairo","readex"];
@@ -362,7 +362,7 @@
     const stages=[
       ["discover","👀","أتعرّف","أرى الحرف وأسمع اسمه",true],
       ["identify","🔎","أميّز","أختار الحرف من بين حروف أخرى",p.discover],
-      ["position","📍","أعرف مكانه","أتعلم البداية والوسط والنهاية",p.identify],
+      ["position","🚂","قطار الكلمة","أتعلم البداية والوسط والنهاية بقطار واحد",p.identify],
       ["joining","🔗","أعرف اتصاله","أرى كيف يمسك الحروف حوله",p.position],
       ["mastery","⭐","أتقن","اختبار يفتح الحرف التالي",p.joining]
     ];
@@ -544,56 +544,58 @@
     };
   }
 
-  function positionBoard(activePosition, letter="", compact=false, withLabels=false){
-    const slots=[
+  function trainWagonsMarkup(letter="", activePosition=null, withLabels=false){
+    const wagons=[
       {id:"start",label:"البداية"},
       {id:"middle",label:"الوسط"},
       {id:"end",label:"النهاية"}
     ];
-    return `<div class="position-board ${compact?"compact":""}">
-      <div class="reading-direction"><span class="start-here">نبدأ من اليمين</span><span class="direction-arrow">←</span></div>
-      <div class="position-slots">
-        ${slots.map(slot=>`<span class="position-cell ${slot.id===activePosition?"active":""}">
-          <span class="cell-content">${slot.id===activePosition && letter ? escapeHTML(letter) : "•"}</span>
-          ${withLabels?`<small>${slot.label}</small>`:""}
-        </span>`).join("")}
+    return `<div class="single-word-train" aria-label="قطار الكلمة">
+      <div class="train-start-note">نبدأ من هنا <span>←</span></div>
+      <div class="single-train-track">
+        <div class="single-engine" aria-hidden="true">
+          <span class="engine-cabin"></span><span class="engine-smoke"></span>
+          <i class="wheel w1"></i><i class="wheel w2"></i>
+        </div>
+        <div class="single-wagons">
+          ${wagons.map(w=>`<div class="single-wagon ${w.id===activePosition?"active":""}">
+            <span class="wagon-letter">${w.id===activePosition && letter?escapeHTML(letter):"•"}</span>
+            ${withLabels?`<small>${w.label}</small>`:""}
+            <i class="wheel"></i>
+          </div>`).join("")}
+        </div>
       </div>
     </div>`;
   }
 
   function positionHelpMarkup(letter){
-    return `<div class="position-help">
-      <div class="help-head"><strong>كيف أعرف المكان؟</strong><button type="button" data-speak="نبدأ من اليمين. الخانة اليمنى هي البداية، والخانة التي في المنتصف هي الوسط، والخانة اليسرى هي النهاية.">🔊 اسمع</button></div>
-      <p>لا تنظر إلى شكل الحرف لتعرف مكانه. انظر فقط إلى <strong>الخانة التي يوجد فيها</strong>.</p>
-      <div class="help-examples">
-        <div>${positionBoard("start",letter,true,true)}</div>
-        <div>${positionBoard("middle",letter,true,true)}</div>
-        <div>${positionBoard("end",letter,true,true)}</div>
+    return `<div class="position-help train-help">
+      <div class="help-head">
+        <strong>كيف ألعب؟</strong>
+        <button type="button" data-speak="المحرك على اليمين. العربة القريبة من المحرك هي البداية، والتي بعدها هي الوسط، وأبعد عربة هي النهاية.">🔊 اسمع</button>
       </div>
+      <p>لدينا <strong>قطار واحد</strong>. المحرك ثابت في اليمين. اختر العربة التي طلبها منك الصوت.</p>
+      ${trainWagonsMarkup(letter,"start",true)}
     </div>`;
   }
 
   function positionLessonView(){
     const item=LETTERS[state.selectedLetter];
     return `
-      <section class="position-lesson">
+      <section class="position-lesson train-lesson">
         <span class="eyebrow">تعلّم قبل الاختبار</span>
-        <h2>أين يوجد حرف ${item.letter}؟</h2>
-        <button class="question-audio" data-speak="نبدأ من اليمين. اليمين هو البداية، ثم الوسط، ثم النهاية في اليسار.">🔊 اسمع الشرح</button>
-        <div class="lesson-direction">نبدأ من اليمين <b>←</b></div>
-        <div class="position-teaching-cards">
-          <button class="position-teach-card" data-speak="حرف ${item.name} في البداية، في الجهة اليمنى.">
-            ${positionBoard("start",item.letter,false,true)}
-          </button>
-          <button class="position-teach-card" data-speak="حرف ${item.name} في الوسط، في المنتصف.">
-            ${positionBoard("middle",item.letter,false,true)}
-          </button>
-          <button class="position-teach-card" data-speak="حرف ${item.name} في النهاية، في الجهة اليسرى.">
-            ${positionBoard("end",item.letter,false,true)}
-          </button>
+        <h2>قطار حرف ${item.letter}</h2>
+        <button class="question-audio" data-speak="هذا قطار الكلمة. نبدأ من جهة المحرك في اليمين. العربة الأولى هي البداية، ثم الوسط، ثم النهاية.">🔊 اسمع الشرح</button>
+        <p class="train-explain">المحرك يحدد لنا <strong>بداية الكلمة</strong>. كلما ابتعدنا عنه نصل إلى الوسط ثم النهاية.</p>
+        ${trainWagonsMarkup(item.letter,"start",true)}
+        <div class="train-key">
+          <span><b>🚂</b> المحرك</span>
+          <span><b>البداية</b> أقرب عربة</span>
+          <span><b>الوسط</b> العربة الثانية</span>
+          <span><b>النهاية</b> أبعد عربة</span>
         </div>
-        <div class="position-rule"><strong>المهم:</strong> مكان الحرف تحدده الخانة، وليس شكله.</div>
-        <button class="btn green path-next" data-action="start-position-game">فهمت — ابدأ التدريب</button>
+        <div class="position-rule"><strong>مهم:</strong> القطار يعلّم مكان الحرف فقط. شكل اتصال الحرف نتعلمه في المرحلة التالية.</div>
+        <button class="btn green path-next" data-action="start-position-game">ابدأ لعبة القطار 🚂</button>
       </section>`;
   }
 
@@ -605,17 +607,17 @@
       type:"position",
       letter:target.letter,
       prompt:`ضع حرف ${target.letter} في ${labels[position]}`,
-      spoken:`ضع حرف ${target.name} في ${labels[position]}. نبدأ من اليمين.`,
-      display:`<div class="placement-task"><div class="placement-letter">${target.letter}</div><div class="placement-guide"><span>نبدأ من اليمين</span><b>←</b></div></div>`,
+      spoken:`ضع حرف ${target.name} في ${labels[position]}. اختر عربة واحدة في القطار.`,
+      display:`<div class="train-letter-token">${target.letter}</div>`,
       html:true,
       help:positionHelpMarkup(target.letter),
       options:["start","middle","end"].map(pos=>({
         value:pos,
         label:labels[pos],
-        html:`<span class="placement-choice"><span class="choice-box"></span></span>`
+        html:`<span class="train-wagon-choice" data-train-pos="${pos}"><span class="wagon-dot">•</span><i class="wheel"></i></span>`
       })),
       answer:position,
-      explanation:`${labels[position]}: ${position==="start"?"الخانة اليمنى":position==="middle"?"الخانة التي في المنتصف":"الخانة اليسرى"}.`,
+      explanation:`${labels[position]} هي ${position==="start"?"العربة القريبة من المحرك":position==="middle"?"العربة الوسطى":"العربة الأبعد عن المحرك"}.`,
       spokenAnswer:`أحسنت. هذا هو ${labels[position]}`
     };
   }
