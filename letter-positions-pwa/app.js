@@ -1,0 +1,425 @@
+(() => {
+  "use strict";
+
+  const LETTERS = [
+    ["ا","ألف",false,["ابن","باب","عصا"]],
+    ["ب","باء",true,["بيت","حبل","كتاب"]],
+    ["ت","تاء",true,["تمر","كتاب","بنت"]],
+    ["ث","ثاء",true,["ثوب","مثل","مثلث"]],
+    ["ج","جيم",true,["جبل","شجرة","ثلج"]],
+    ["ح","حاء",true,["حوت","بحر","تفاح"]],
+    ["خ","خاء",true,["خبز","نخلة","بطيخ"]],
+    ["د","دال",false,["دب","مدرسة","يد"]],
+    ["ذ","ذال",false,["ذئب","حذاء","تلميذ"]],
+    ["ر","راء",false,["رمان","فراشة","قمر"]],
+    ["ز","زاي",false,["زهرة","ميزان","أرز"]],
+    ["س","سين",true,["سمك","مسجد","جرس"]],
+    ["ش","شين",true,["شمس","فراش","ريش"]],
+    ["ص","صاد",true,["صقر","عصير","قفص"]],
+    ["ض","ضاد",true,["ضفدع","خضار","بيض"]],
+    ["ط","طاء",true,["طائرة","مطر","قط"]],
+    ["ظ","ظاء",true,["ظرف","مظلة","حظ"]],
+    ["ع","عين",true,["عين","ملعب","شمع"]],
+    ["غ","غين",true,["غزال","صغير","صمغ"]],
+    ["ف","فاء",true,["فراشة","دفتر","أنف"]],
+    ["ق","قاف",true,["قمر","بقرة","ورق"]],
+    ["ك","كاف",true,["كتاب","مكتب","سمك"]],
+    ["ل","لام",true,["ليمون","قلم","جبل"]],
+    ["م","ميم",true,["موز","قمر","علم"]],
+    ["ن","نون",true,["نجم","عنب","حصان"]],
+    ["ه","هاء",true,["هلال","نهر","وجه"]],
+    ["و","واو",false,["ورد","حوت","دلو"]],
+    ["ي","ياء",true,["يد","بيت","كرسي"]]
+  ].map(([letter,name,joinsNext,words], index) => ({ id:index, letter,name,joinsNext,words }));
+
+  const POSITIONS = [
+    { id:"start", label:"أول الكلمة" },
+    { id:"middle", label:"وسط الكلمة" },
+    { id:"end", label:"آخر الكلمة" },
+    { id:"isolated", label:"منفصل" }
+  ];
+
+  const STORE_KEY = "hurufi-progress:v1";
+  const state = {
+    screen:"home",
+    previous:"home",
+    selectedLetter:0,
+    sound:true,
+    quiz:null,
+    progress:loadProgress()
+  };
+
+  const screen = document.getElementById("screen");
+  const backBtn = document.getElementById("backBtn");
+  const soundBtn = document.getElementById("soundBtn");
+  const bottomNav = document.getElementById("bottomNav");
+
+  function loadProgress(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+      return {
+        xp:Number(saved.xp)||0,
+        correct:Number(saved.correct)||0,
+        total:Number(saved.total)||0,
+        best:Number(saved.best)||0,
+        letters:saved.letters && typeof saved.letters==="object" ? saved.letters : {}
+      };
+    }catch{
+      return {xp:0,correct:0,total:0,best:0,letters:{}};
+    }
+  }
+
+  function saveProgress(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(state.progress)); }catch{}
+  }
+
+  function levelFor(letter){
+    const item = state.progress.letters[letter] || {correct:0,total:0};
+    if(item.correct >= 8 && item.correct / Math.max(item.total,1) >= .8) return 3;
+    if(item.correct >= 4) return 2;
+    if(item.correct >= 1) return 1;
+    return 0;
+  }
+
+  function record(letter, correct){
+    const current = state.progress.letters[letter] || {correct:0,total:0};
+    current.total += 1;
+    if(correct) current.correct += 1;
+    state.progress.letters[letter] = current;
+    state.progress.total += 1;
+    if(correct){ state.progress.correct += 1; state.progress.xp += 10; }
+    saveProgress();
+  }
+
+  function setScreen(next, payload){
+    if(next !== state.screen) state.previous = state.screen;
+    state.screen = next;
+    if(typeof payload === "number") state.selectedLetter = payload;
+    render();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  function escapeHTML(value){
+    return String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+  }
+
+  function highlight(word, letter){
+    const safe = escapeHTML(word);
+    const idx = safe.indexOf(letter);
+    if(idx < 0) return safe;
+    return safe.slice(0,idx) + '<span class="target">' + letter + '</span>' + safe.slice(idx+letter.length);
+  }
+
+  function formsFor(item){
+    if(item.joinsNext){
+      return [
+        ["منفصل", item.letter],
+        ["أول", item.letter + "ـ"],
+        ["وسط", "ـ" + item.letter + "ـ"],
+        ["آخر", "ـ" + item.letter]
+      ];
+    }
+    return [
+      ["منفصل", item.letter],
+      ["أول", item.letter],
+      ["وسط", "ـ" + item.letter],
+      ["آخر", "ـ" + item.letter]
+    ];
+  }
+
+  function speak(text){
+    if(!state.sound || !("speechSynthesis" in window)) return;
+    try{
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "ar-SA";
+      u.rate = .72;
+      const voice = speechSynthesis.getVoices().find(v => /^ar/i.test(v.lang));
+      if(voice) u.voice = voice;
+      speechSynthesis.speak(u);
+    }catch{}
+  }
+
+  function masteredCount(){
+    return LETTERS.filter(item => levelFor(item.letter) >= 3).length;
+  }
+
+  function homeView(){
+    const accuracy = state.progress.total ? Math.round(state.progress.correct/state.progress.total*100) : 0;
+    return `
+      <section class="hero">
+        <small>مسار الحروف العربية</small>
+        <h1>نتعرّف على الحرف<br>ثم نكتشف مكانه</h1>
+        <p>تعلّم بصري بسيط يبدأ من شكل الحرف، ثم ينتقل إلى تمييزه داخل الكلمة واختبار موقعه.</p>
+        <div class="hero-actions">
+          <button class="btn primary" data-action="start-learn">ابدأ التعلم ←</button>
+          <button class="btn secondary" data-action="start-quiz">اختبار سريع ✓</button>
+        </div>
+      </section>
+      <div class="stats">
+        <div class="stat"><strong>${masteredCount()}</strong><small>حروف متقنة</small></div>
+        <div class="stat"><strong>${state.progress.xp}</strong><small>نقطة تعلم</small></div>
+        <div class="stat"><strong>${accuracy}٪</strong><small>دقة الإجابات</small></div>
+      </div>
+      <div class="section-title"><h2>الحروف</h2><small>اضغط أي حرف للتعلم</small></div>
+      ${alphabetGrid()}
+    `;
+  }
+
+  function alphabetGrid(){
+    return '<div class="alphabet-grid">' + LETTERS.map(item => {
+      const level = levelFor(item.letter);
+      return `<button class="letter-tile" data-letter="${item.id}" data-level="${level}" aria-label="تعلم حرف ${item.name}">
+        ${item.letter}${level ? '<span class="mini-star">' + "★".repeat(level) + '</span>' : ''}
+      </button>`;
+    }).join("") + "</div>";
+  }
+
+  function learnView(){
+    const item = LETTERS[state.selectedLetter];
+    const forms = formsFor(item);
+    return `
+      <section class="card letter-stage">
+        <div class="giant-letter">${item.letter}</div>
+        <div class="letter-name">حرف ${item.name}</div>
+        <span class="connection-note">${item.joinsNext ? "يتصل بما بعده" : "لا يتصل بما بعده"}</span>
+        <div><button class="btn soft speak-btn" data-action="speak-letter">🔊 اسمع الحرف</button></div>
+      </section>
+
+      <div class="section-title"><h2>أشكال الحرف</h2><small>لاحظ تغيّر الشكل</small></div>
+      <div class="forms-grid">
+        ${forms.map(([label,shape]) => `<div class="form-card"><small>${label}</small><strong>${shape}</strong></div>`).join("")}
+      </div>
+
+      <div class="section-title"><h2>الحرف في الكلمات</h2><small>أول · وسط · آخر</small></div>
+      <div class="examples">
+        ${item.words.map((word,i) => `<div class="example-row">
+          <span>${["في البداية","في الوسط","في النهاية"][i]}</span>
+          <span class="word">${highlight(word,item.letter)}</span>
+          <span class="position-chip">${["أول","وسط","آخر"][i]}</span>
+        </div>`).join("")}
+      </div>
+
+      <div class="letter-nav">
+        <button class="btn ghost" data-action="prev-letter" ${item.id===0?"disabled":""}>السابق</button>
+        <button class="btn green" data-action="practice-letter">اختبرني في ${item.letter}</button>
+        <button class="btn ghost" data-action="next-letter" ${item.id===LETTERS.length-1?"disabled":""}>التالي</button>
+      </div>
+    `;
+  }
+
+  function randomItem(list){ return list[Math.floor(Math.random()*list.length)]; }
+  function shuffle(list){ return [...list].sort(() => Math.random()-.5); }
+
+  function makeIdentifyQuestion(focus){
+    const target = focus ?? randomItem(LETTERS);
+    const others = shuffle(LETTERS.filter(x=>x.id!==target.id)).slice(0,3);
+    return {
+      type:"identify", letter:target.letter,
+      prompt:`اختر حرف ${target.name}`,
+      display:target.name,
+      options:shuffle([target,...others]).map(x=>({value:x.letter,label:x.letter})),
+      answer:target.letter,
+      explanation:`هذا هو حرف ${target.name}: ${target.letter}`
+    };
+  }
+
+  function makePositionQuestion(focus){
+    const target = focus ?? randomItem(LETTERS);
+    const index = Math.floor(Math.random()*3);
+    const word = target.words[index];
+    return {
+      type:"position", letter:target.letter,
+      prompt:`أين يقع حرف ${target.letter} في الكلمة؟`,
+      display:highlight(word,target.letter),
+      html:true,
+      options:[
+        {value:"start",label:"أول الكلمة"},
+        {value:"middle",label:"وسط الكلمة"},
+        {value:"end",label:"آخر الكلمة"}
+      ],
+      answer:["start","middle","end"][index],
+      explanation:`حرف ${target.letter} هنا في ${["أول","وسط","آخر"][index]} الكلمة.`
+    };
+  }
+
+  function makeShapeQuestion(focus){
+    const target = focus ?? randomItem(LETTERS);
+    const forms = formsFor(target);
+    const candidate = randomItem(forms);
+    return {
+      type:"shape", letter:target.letter,
+      prompt:`هذا شكل حرف ${target.letter} في...`,
+      display:candidate[1],
+      options:POSITIONS.map(p=>({value:p.id,label:p.label})),
+      answer:{ "منفصل":"isolated","أول":"start","وسط":"middle","آخر":"end" }[candidate[0]],
+      explanation:`الشكل المعروض لحرف ${target.letter}: ${candidate[0]}.`
+    };
+  }
+
+  function newQuestion(focus){
+    return randomItem([makeIdentifyQuestion,makePositionQuestion,makeShapeQuestion])(focus);
+  }
+
+  function startQuiz(focusId=null){
+    const focus = focusId===null ? null : LETTERS[focusId];
+    state.quiz = { index:0, score:0, answered:false, choice:null, focus, question:newQuestion(focus) };
+    state.screen = "quiz";
+    render();
+  }
+
+  function quizView(){
+    if(!state.quiz) startQuiz();
+    const q = state.quiz;
+    if(q.index >= 10) return resultView();
+    const question = q.question;
+    const percent = q.index/10*100;
+    return `
+      <div class="quiz-shell">
+        <div class="quiz-head">
+          <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
+          <span class="quiz-count">${q.index+1} / 10</span>
+        </div>
+        <section class="question-card">
+          <span class="eyebrow">${question.type==="identify"?"تمييز الحرف":question.type==="position"?"موقع الحرف":"شكل الحرف"}</span>
+          <h2>${question.prompt}</h2>
+          <div class="${question.type==="position"?"prompt-word":"prompt-letter"}">${question.html?question.display:escapeHTML(question.display)}</div>
+          <div class="answers">
+            ${question.options.map(opt => {
+              let cls = "answer" + (question.type==="identify"?"":" text");
+              if(q.answered && opt.value===question.answer) cls += " correct";
+              if(q.answered && opt.value===q.choice && opt.value!==question.answer) cls += " wrong";
+              return `<button class="${cls}" data-answer="${escapeHTML(opt.value)}" ${q.answered?"disabled":""}>${escapeHTML(opt.label)}</button>`;
+            }).join("")}
+          </div>
+          ${q.answered ? `<div class="feedback ${q.choice===question.answer?"good":"bad"}">${q.choice===question.answer?"أحسنت! 🌟":"محاولة جميلة. "+question.explanation}</div>
+          <button class="btn green" data-action="next-question">${q.index===9?"عرض النتيجة":"السؤال التالي"}</button>` : ""}
+        </section>
+      </div>
+    `;
+  }
+
+  function answerQuestion(value){
+    const q = state.quiz;
+    if(!q || q.answered) return;
+    q.answered = true;
+    q.choice = value;
+    const correct = value === q.question.answer;
+    if(correct){ q.score += 1; celebrate(); }
+    record(q.question.letter, correct);
+    render();
+  }
+
+  function nextQuestion(){
+    const q = state.quiz;
+    if(!q) return;
+    q.index += 1;
+    q.answered = false;
+    q.choice = null;
+    if(q.index < 10) q.question = newQuestion(q.focus);
+    else{
+      state.progress.best = Math.max(state.progress.best,q.score);
+      saveProgress();
+    }
+    render();
+  }
+
+  function resultView(){
+    const q = state.quiz;
+    const score = q ? q.score : 0;
+    const pct = score*10;
+    const text = score>=9?"ممتاز جدًا!":score>=7?"أداء رائع!":score>=5?"تقدم جميل":"نواصل التدريب";
+    return `
+      <section class="card result-card">
+        <div class="result-medal">${score>=8?"🏆":score>=5?"🌟":"🌱"}</div>
+        <h2>${text}</h2>
+        <p>أجبت عن ${score} من 10 إجابات صحيحة.</p>
+        <div class="score-ring" style="--score-angle:${pct*3.6}deg"><strong>${pct}٪</strong></div>
+        <div class="hero-actions" style="justify-content:center">
+          <button class="btn green" data-action="restart-quiz">اختبار جديد</button>
+          <button class="btn ghost" data-action="go-progress">شاهد تقدمي</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function progressView(){
+    const practiced = LETTERS.filter(item => (state.progress.letters[item.letter]?.total||0)>0);
+    if(!practiced.length){
+      return `<section class="card empty"><div class="emoji">🌱</div><h2>بداية جميلة</h2><p>ابدأ بتعلم حرف أو خض اختبارًا، وسنحفظ تقدمك هنا على هذا الجهاز.</p><button class="btn green" data-action="start-learn">ابدأ الآن</button></section>`;
+    }
+    return `
+      <div class="section-title"><h2>تقدمي في الحروف</h2><small>كلما تدربت ارتفعت النجوم</small></div>
+      <div class="progress-list">
+        ${practiced.map(item => {
+          const p=state.progress.letters[item.letter];
+          const accuracy=Math.round(p.correct/Math.max(p.total,1)*100);
+          const level=levelFor(item.letter);
+          return `<button class="progress-row" data-letter="${item.id}">
+            <span class="progress-letter">${item.letter}</span>
+            <span class="progress-copy"><strong>حرف ${item.name}</strong><small>${p.correct} صحيحة من ${p.total}</small><span class="bar"><span style="width:${accuracy}%"></span></span></span>
+            <span class="stars">${"★".repeat(level)}${"☆".repeat(3-level)}</span>
+          </button>`;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function render(){
+    bottomNav.querySelectorAll("button").forEach(btn => btn.classList.toggle("active",btn.dataset.screen===state.screen));
+    backBtn.classList.toggle("hidden",["home","learn","quiz","progress"].includes(state.screen));
+    soundBtn.textContent = state.sound ? "🔊" : "🔇";
+    if(state.screen==="home") screen.innerHTML=homeView();
+    else if(state.screen==="learn-list") screen.innerHTML='<div class="section-title"><h2>اختر حرفًا</h2><small>28 حرفًا</small></div>'+alphabetGrid();
+    else if(state.screen==="learn") screen.innerHTML=learnView();
+    else if(state.screen==="quiz") screen.innerHTML=quizView();
+    else if(state.screen==="progress") screen.innerHTML=progressView();
+    bindDynamic();
+  }
+
+  function bindDynamic(){
+    screen.querySelectorAll("[data-letter]").forEach(btn => btn.addEventListener("click",()=>setScreen("learn",Number(btn.dataset.letter))));
+    screen.querySelectorAll("[data-answer]").forEach(btn => btn.addEventListener("click",()=>answerQuestion(btn.dataset.answer)));
+    screen.querySelectorAll("[data-action]").forEach(btn => btn.addEventListener("click",()=>{
+      const action=btn.dataset.action;
+      if(action==="start-learn") setScreen("learn-list");
+      if(action==="start-quiz") startQuiz();
+      if(action==="speak-letter") speak(LETTERS[state.selectedLetter].name);
+      if(action==="prev-letter"){state.selectedLetter=Math.max(0,state.selectedLetter-1);render();}
+      if(action==="next-letter"){state.selectedLetter=Math.min(LETTERS.length-1,state.selectedLetter+1);render();}
+      if(action==="practice-letter") startQuiz(state.selectedLetter);
+      if(action==="next-question") nextQuestion();
+      if(action==="restart-quiz") startQuiz(state.quiz?.focus?.id ?? null);
+      if(action==="go-progress") setScreen("progress");
+    }));
+  }
+
+  function celebrate(){
+    const layer=document.getElementById("celebration");
+    for(let i=0;i<12;i++){
+      const s=document.createElement("span");
+      s.className="confetti";
+      s.textContent=randomItem(["★","●","◆","✦"]);
+      s.style.left=(8+Math.random()*84)+"%";
+      s.style.animationDelay=(Math.random()*.18)+"s";
+      layer.appendChild(s);
+      setTimeout(()=>s.remove(),1800);
+    }
+  }
+
+  bottomNav.addEventListener("click",e=>{
+    const btn=e.target.closest("button[data-screen]");
+    if(!btn) return;
+    if(btn.dataset.screen==="learn") setScreen("learn-list");
+    else if(btn.dataset.screen==="quiz") startQuiz();
+    else setScreen(btn.dataset.screen);
+  });
+  backBtn.addEventListener("click",()=>setScreen(state.previous||"home"));
+  soundBtn.addEventListener("click",()=>{state.sound=!state.sound;if(!state.sound&&"speechSynthesis" in window)speechSynthesis.cancel();render();});
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  }
+
+  render();
+})();
