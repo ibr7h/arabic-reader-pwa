@@ -1,0 +1,52 @@
+name: Vendor Hurufi Fonts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/vendor-hurufi-fonts.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-fonts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download official Google Fonts sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hurufi-v2/assets/fonts/licenses
+
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf"             -o "hurufi-v2/assets/fonts/NotoNaskhArabic-VF.ttf"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/baloobhaijaan2/BalooBhaijaan2%5Bwght%5D.ttf"             -o "hurufi-v2/assets/fonts/BalooBhaijaan2-VF.ttf"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf"             -o "hurufi-v2/assets/fonts/Cairo-VF.ttf"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/readexpro/ReadexPro%5BHEXP%2Cwght%5D.ttf"             -o "hurufi-v2/assets/fonts/ReadexPro-VF.ttf"
+
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/OFL.txt"             -o "hurufi-v2/assets/fonts/licenses/NotoNaskhArabic-OFL.txt"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/baloobhaijaan2/OFL.txt"             -o "hurufi-v2/assets/fonts/licenses/BalooBhaijaan2-OFL.txt"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/OFL.txt"             -o "hurufi-v2/assets/fonts/licenses/Cairo-OFL.txt"
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/readexpro/OFL.txt"             -o "hurufi-v2/assets/fonts/licenses/ReadexPro-OFL.txt"
+
+          (
+            cd hurufi-v2/assets/fonts
+            sha256sum NotoNaskhArabic-VF.ttf BalooBhaijaan2-VF.ttf Cairo-VF.ttf ReadexPro-VF.ttf > SHA256SUMS.txt
+          )
+
+      - name: Commit vendored fonts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hurufi-v2/assets/fonts
+          if git diff --cached --quiet; then
+            echo "Fonts already vendored."
+            exit 0
+          fi
+          git commit -m "Vendor Hurufi 2 learning fonts locally"
+          git push
