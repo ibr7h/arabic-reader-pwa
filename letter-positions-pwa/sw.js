@@ -1,5 +1,5 @@
-const CACHE = "hurufi-letter-positions-v11";
-const APP_VERSION = "1.6.1";
+const CACHE = "hurufi-letter-positions-v12";
+const APP_VERSION = "1.6.2";
 const SHELL = [
   ["./index.html", "./index.html?v="+APP_VERSION],
   ["./styles.css", "./styles.css?v="+APP_VERSION],
@@ -89,7 +89,7 @@ self.addEventListener("fetch", event => {
     if(cached) return cached;
     try{
       const response=await fetch(event.request);
-      if(response.ok){
+      if(response.ok || response.type==="opaque"){
         const cache=await caches.open(CACHE);
         await cache.put(event.request,response.clone());
       }
