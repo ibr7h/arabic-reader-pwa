@@ -1,0 +1,29 @@
+/* Hurufi 2 local learning fonts — SIL Open Font License 1.1 */
+@font-face{
+  font-family:"Hurufi Naskh";
+  src:url("./assets/fonts/NotoNaskhArabic-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:400 700;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Baloo";
+  src:url("./assets/fonts/BalooBhaijaan2-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:400 800;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Cairo";
+  src:url("./assets/fonts/Cairo-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:200 1000;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Hurufi Readex";
+  src:url("./assets/fonts/ReadexPro-VF.ttf") format("truetype");
+  font-style:normal;
+  font-weight:160 700;
+  font-display:swap;
+}
