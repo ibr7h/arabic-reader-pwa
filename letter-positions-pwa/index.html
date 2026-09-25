@@ -8,9 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="حروفي">
   <title>حروفي — تعلم الحروف العربية</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1.6.1">
+  <link rel="manifest" href="./manifest.webmanifest?v=1.6.2">
   <link rel="apple-touch-icon" href="../assets/icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=1.6.1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;600;700&family=Cairo:wght@400;600;700&family=Changa:wght@400;600;700&family=Lalezar&family=Marhey:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&family=Readex+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=1.6.2">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -18,7 +21,7 @@
       <button id="backBtn" class="icon-btn hidden" type="button" aria-label="رجوع">←</button>
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">أ</span>
-        <div><strong>حروفي</strong><small>أتعلم · أميّز · أتقن</small><span id="appVersion" class="app-version">v1.6.1</span></div>
+        <div><strong>حروفي</strong><small>أتعلم · أميّز · أتقن</small><span id="appVersion" class="app-version">v1.6.2</span></div>
       </div>
       <div class="header-actions">
         <button id="fontBtn" class="icon-btn font-btn" type="button" aria-label="تغيير خط الحروف">عـ</button>
@@ -36,15 +39,31 @@
     </nav>
   </div>
   <div id="fontPanel" class="font-panel" hidden>
-    <div class="font-panel-head"><strong>اختر خط الحروف</strong><small>يتغير شكل الحروف التعليمية فقط</small></div>
+    <div class="font-panel-head">
+      <div><strong>اختر خط الحروف</strong><small>يتغير شكل الحروف التعليمية فقط</small></div>
+      <button type="button" class="font-close" aria-label="إغلاق">×</button>
+    </div>
+
+    <div class="font-section-title">🌟 خطوط أطفال ومرحة</div>
     <div class="font-options">
-      <button type="button" data-font-choice="geeza"><span class="font-preview font-preview-geeza">بـ ـبـ ـب</span><strong>واضح</strong><small>Geeza Pro</small></button>
-      <button type="button" data-font-choice="sf"><span class="font-preview font-preview-sf">بـ ـبـ ـب</span><strong>حديث</strong><small>SF Arabic</small></button>
-      <button type="button" data-font-choice="naskh"><span class="font-preview font-preview-naskh">بـ ـبـ ـب</span><strong>نسخي</strong><small>Naskh / Traditional</small></button>
+      <button type="button" data-font-choice="baloo"><span class="font-preview font-preview-baloo">بـ ـبـ ـب</span><strong>Baloo</strong><small>طفولي ومرح</small></button>
+      <button type="button" data-font-choice="marhey"><span class="font-preview font-preview-marhey">بـ ـبـ ـب</span><strong>Marhey</strong><small>مرح للطفولة</small></button>
+      <button type="button" data-font-choice="lalezar"><span class="font-preview font-preview-lalezar">بـ ـبـ ـب</span><strong>Lalezar</strong><small>كرتوني بارز</small></button>
+      <button type="button" data-font-choice="changa"><span class="font-preview font-preview-changa">بـ ـبـ ـب</span><strong>Changa</strong><small>مكعبات واضحة</small></button>
+    </div>
+
+    <div class="font-section-title">📚 خطوط مدرسية وتعليمية</div>
+    <div class="font-options">
+      <button type="button" data-font-choice="school"><span class="font-preview font-preview-school">بـ ـبـ ـب</span><strong>النسخ المدرسي</strong><small>Noto Naskh Arabic</small></button>
+      <button type="button" data-font-choice="cairo"><span class="font-preview font-preview-cairo">بـ ـبـ ـب</span><strong>Cairo</strong><small>هندسي واضح</small></button>
+      <button type="button" data-font-choice="readex"><span class="font-preview font-preview-readex">بـ ـبـ ـب</span><strong>Readex</strong><small>قراءة مبسطة</small></button>
+      <button type="button" data-font-choice="geeza"><span class="font-preview font-preview-geeza">بـ ـبـ ـب</span><strong>Geeza Pro</strong><small>واضح على iPhone</small></button>
+      <button type="button" data-font-choice="sf"><span class="font-preview font-preview-sf">بـ ـبـ ـب</span><strong>SF Arabic</strong><small>حديث</small></button>
+      <button type="button" data-font-choice="naskh"><span class="font-preview font-preview-naskh">بـ ـبـ ـب</span><strong>نسخي بديل</strong><small>Traditional / Naskh</small></button>
     </div>
   </div>
   <div id="updateBar" class="update-bar" hidden><div class="update-copy"><strong id="updateTitle">يوجد تحديث جديد</strong><span id="updateStatus">جارٍ التحديث…</span><div class="update-progress"><span id="updateProgressFill"></span></div></div></div>
   <div id="celebration" class="celebration" aria-hidden="true"></div>
-  <script src="./app.js?v=1.6.1" defer></script>
+  <script src="./app.js?v=1.6.2" defer></script>
 </body>
 </html>
