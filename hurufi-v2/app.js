@@ -6,6 +6,7 @@
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
   const STORAGE_KEY="hurufi-v2:golden-meem";
+  const SLOT_HISTORY_KEY="hurufi-v2:answer-slot-history";
   const FONT_KEY="hurufi-v2:learning-font";
   const VOICE_KEY="hurufi-v2:voice";
   const FONT_OPTIONS=["school","scheherazade","harmattan","sans","kufi","baloo","cairo","readex","geeza"];
@@ -71,7 +72,7 @@
     identifyChoice:null,
     identifyOrder:null,
     challengeOrder:null,
-    lastAnswerIndex:{},
+    lastAnswerIndex:loadAnswerSlotHistory(),
     visitedWords:new Set(),
     trainIndex:0,
     trainScore:0,
@@ -82,6 +83,17 @@
     challengeAnswered:false,
     challengeChoice:null
   };
+
+  function loadAnswerSlotHistory(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(SLOT_HISTORY_KEY)||"{}");
+      return saved&&typeof saved==="object"&&!Array.isArray(saved)?saved:{};
+    }catch{return {};}
+  }
+
+  function saveAnswerSlotHistory(){
+    try{localStorage.setItem(SLOT_HISTORY_KEY,JSON.stringify(state.lastAnswerIndex));}catch{}
+  }
 
   function shuffledCopy(values){
     const arr=[...values];
@@ -110,7 +122,10 @@
     }
 
     const current=result.findIndex(v=>String(v)===String(answer));
-    if(current>=0)state.lastAnswerIndex[key]=current;
+    if(current>=0){
+      state.lastAnswerIndex[key]=current;
+      saveAnswerSlotHistory();
+    }
     return result;
   }
 
