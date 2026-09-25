@@ -449,3 +449,61 @@ button{cursor:pointer}
   unicode-bidi:isolate;
   direction:rtl
 }
+
+
+/* v1.6.4 — restore red as the visual identity of the target letter */
+:root{
+  --letter-red:#c94151;
+  --letter-red-soft:#fff0f2;
+  --letter-red-line:#e4a8b0;
+}
+
+/* Target letter = red. Success/connection remains green. */
+.giant-letter,
+.discover-letter,
+.prompt-letter,
+.placement-letter,
+.join-core,
+.word-join-form{
+  color:var(--letter-red)!important;
+}
+
+.placement-letter,
+.join-core{
+  background:var(--letter-red-soft)!important;
+  border-color:var(--letter-red-line)!important;
+}
+
+.target,
+.contextual-target{
+  color:var(--letter-red)!important;
+  background:var(--letter-red-soft)!important;
+}
+
+.joining-question .join-core,
+.joining-card .join-core,
+.joining-summary-card .join-core{
+  color:var(--letter-red)!important;
+}
+
+.joining-answer.correct .join-core{
+  color:var(--letter-red)!important;
+  background:var(--letter-red-soft)!important;
+  border-color:var(--green)!important;
+}
+.joining-answer.wrong .join-core{
+  color:var(--letter-red)!important;
+  background:var(--letter-red-soft)!important;
+  border-color:var(--rose)!important;
+}
+
+/* Keep connection lines green so the child sees letter vs. connection as two concepts. */
+.join-side.on i,
+.join-side.on::after{
+  background:var(--green)!important;
+}
+
+/* The active position cell can stay green, but the letter inside it remains red. */
+.position-cell.active .cell-content{
+  color:var(--letter-red)!important;
+}
