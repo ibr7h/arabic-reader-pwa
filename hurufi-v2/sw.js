@@ -1,5 +1,6 @@
-const CACHE="hurufi-v2-alpha5";
-const VERSION="2.0.0-alpha.5";
+const CACHE="hurufi-v2-alpha6";
+const FONT_CACHE="hurufi-v2-fonts-v1";
+const VERSION="2.0.0-alpha.6";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
@@ -7,9 +8,8 @@ const SHELL=[
   ["./app.js","./app.js?v="+VERSION],
   ["./manifest.webmanifest","./manifest.webmanifest?v="+VERSION]
 ];
-const STATIC=[
-  "../assets/icons/icon-192.png",
-  "../assets/icons/icon-512.png",
+const STATIC=["../assets/icons/icon-192.png","../assets/icons/icon-512.png"];
+const FONT_ASSETS=[
   "./assets/fonts/NotoNaskhArabic-VF.ttf",
   "./assets/fonts/BalooBhaijaan2-VF.ttf",
   "./assets/fonts/Cairo-VF.ttf",
@@ -32,6 +32,16 @@ self.addEventListener("install",event=>{
     for(const url of STATIC){
       try{await cacheFresh(cache,url,url);}catch{}
     }
+    const fontCache=await caches.open(FONT_CACHE);
+    for(const url of FONT_ASSETS){
+      try{
+        const existing=await fontCache.match(url);
+        if(!existing){
+          const response=await fetch(url,{cache:"reload"});
+          if(response.ok)await fontCache.put(url,response.clone());
+        }
+      }catch{}
+    }
     await self.skipWaiting();
   })());
 });
@@ -39,7 +49,7 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil((async()=>{
     const keys=await caches.keys();
-    await Promise.all(keys.filter(k=>k.startsWith("hurufi-v2-")&&k!==CACHE).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>k.startsWith("hurufi-v2-alpha")&&k!==CACHE).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -69,6 +79,20 @@ self.addEventListener("fetch",event=>{
       }catch{
         return (await caches.match("./index.html"))||Response.error();
       }
+    })());
+    return;
+  }
+
+  if(url.origin===location.origin&&url.pathname.includes("/hurufi-v2/assets/fonts/")&&url.pathname.endsWith(".ttf")){
+    event.respondWith((async()=>{
+      const fontCache=await caches.open(FONT_CACHE);
+      const cached=await fontCache.match(event.request);
+      if(cached)return cached;
+      try{
+        const response=await fetch(event.request);
+        if(response.ok)await fontCache.put(event.request,response.clone());
+        return response;
+      }catch{return Response.error();}
     })());
     return;
   }
