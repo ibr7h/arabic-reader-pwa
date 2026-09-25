@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.10";
+  const VERSION="2.0.0-alpha.11";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -76,7 +76,15 @@
     {type:"sound", soundKind:"madd", prompt:"أي مدّ سمعت؟", spoken:"مُو", options:["مَا","مِي","مُو"], answer:"مُو"}
   ];
 
-  const STAGES=["intro","identify","words","train","joining","vowels","madd","challenge","finish"];
+  const PRACTICE_LEVELS=[
+    {id:1,title:"أبدأ بثقة",icon:"🌱",count:6,threshold:80,description:"تمييز حرف م والحركات بصريًا."},
+    {id:2,title:"أسمع وأختار",icon:"👂",count:8,threshold:80,description:"تمييز الحركات والمدود من الصوت."},
+    {id:3,title:"قصير أم طويل؟",icon:"🎵",count:8,threshold:80,description:"مقارنة الحركة القصيرة بالمد وربطهما."},
+    {id:4,title:"أخلط المهارات",icon:"🧩",count:10,threshold:80,description:"الموقع والاتصال والحركات والمدود معًا."},
+    {id:5,title:"اختبار الإتقان",icon:"🏆",count:15,threshold:85,description:"اختبار شامل متغير بلا ترتيب محفوظ."}
+  ];
+
+  const STAGES=["intro","identify","words","train","joining","vowels","madd","practice","finish"];
   const screen=document.getElementById("screen");
   const backBtn=document.getElementById("backBtn");
   const soundBtn=document.getElementById("soundBtn");
@@ -113,6 +121,16 @@
     trainRound:createTrainRound(),
     visitedVowels:new Set(),
     visitedMadd:new Set(),
+    practiceMode:"hub",
+    practiceLevel:1,
+    practiceUnlocked:1,
+    practiceResults:{},
+    practiceQueue:[],
+    practiceIndex:0,
+    practiceScore:0,
+    practiceAnswered:false,
+    practiceChoice:null,
+    practiceBaseCount:0,
     challengeIndex:0,
     challengeScore:0,
     challengeAnswered:false,
@@ -485,7 +503,7 @@
   }
 
   function progress(){
-    const map={intro:0,identify:12,words:24,train:38,joining:52,vowels:66,madd:78,challenge:90,finish:100};
+    const map={intro:0,identify:11,words:22,train:34,joining:46,vowels:58,madd:70,practice:86,finish:100};
     return map[state.stage]??0;
   }
 
@@ -667,6 +685,325 @@
     </div>`;
   }
 
+  function randomOne(values){
+    return values[Math.floor(Math.random()*values.length)];
+  }
+
+  function makeIdentifyPractice(level){
+    const pools=[
+      ["م","ن","هـ"],
+      ["م","و","ف","ق"],
+      ["ن","س","م","ه"],
+      ["ب","م","ع","هـ"]
+    ];
+    const options=randomOne(pools);
+    return {
+      id:"identify-"+Date.now()+"-"+Math.random(),
+      type:"identify",
+      prompt:"أين حرف م؟",
+      spoken:"أَيْنَ حَرْفُ مِيمْ؟",
+      options,
+      answer:"م",
+      retryCount:0,
+      level
+    };
+  }
+
+  function makeVisualVowelPractice(level){
+    const target=randomOne(SHORT_VOWELS);
+    return {
+      id:"visual-vowel-"+Date.now()+"-"+Math.random(),
+      type:"visual-sound",
+      prompt:`اختر ${target.glyph}`,
+      display:target.glyph,
+      spoken:`اِخْتَرْ ${target.spoken}`,
+      options:SHORT_VOWELS.map(x=>x.glyph),
+      answer:target.glyph,
+      soundKind:"vowel",
+      retryCount:0,
+      level
+    };
+  }
+
+  function makeAudioPractice(kind,level){
+    const source=kind==="madd"?MADD_FORMS:SHORT_VOWELS;
+    const target=randomOne(source);
+    return {
+      id:"audio-"+kind+"-"+Date.now()+"-"+Math.random(),
+      type:"audio-sound",
+      prompt:kind==="madd"?"استمع واختر المد":"استمع واختر الحركة",
+      spoken:target.spoken,
+      options:source.map(x=>kind==="madd"?x.glyph:x.glyph),
+      answer:target.glyph,
+      soundKind:kind,
+      retryCount:0,
+      level
+    };
+  }
+
+  function makeClassifyPractice(level){
+    const useMadd=Math.random()>.5;
+    const target=useMadd?randomOne(MADD_FORMS):randomOne(SHORT_VOWELS);
+    const glyph=useMadd?target.glyph:target.glyph;
+    return {
+      id:"classify-"+Date.now()+"-"+Math.random(),
+      type:"classify",
+      prompt:"هل هذا الصوت قصير أم مدّ؟",
+      display:glyph,
+      spoken:glyph,
+      options:["صوت قصير","مدّ طويل"],
+      answer:useMadd?"مدّ طويل":"صوت قصير",
+      soundKind:useMadd?"madd":"vowel",
+      retryCount:0,
+      level
+    };
+  }
+
+  function makePairPractice(level){
+    const target=randomOne(MADD_FORMS);
+    return {
+      id:"pair-"+Date.now()+"-"+Math.random(),
+      type:"pair",
+      prompt:`أي مدّ يناسب ${target.short}؟`,
+      display:target.short,
+      spoken:target.short,
+      options:MADD_FORMS.map(x=>x.glyph),
+      answer:target.glyph,
+      soundKind:"madd",
+      retryCount:0,
+      level
+    };
+  }
+
+  function makePositionPractice(level){
+    const position=randomOne(["start","middle","end"]);
+    const ex={...randomOne(TRAIN_WORD_BANK[position])};
+    return {
+      id:"position-"+Date.now()+"-"+Math.random(),
+      type:"position-practice",
+      prompt:"أين حرف م الأحمر؟",
+      spoken:`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`,
+      options:["start","middle","end"],
+      answer:position,
+      example:ex,
+      retryCount:0,
+      level
+    };
+  }
+
+  function makeConnectionPractice(level){
+    const states=[
+      {index:0,label:"يمسك ما بعده"},
+      {index:1,label:"يمسك من الجهتين"},
+      {index:2,label:"يمسك ما قبله"},
+      {index:3,label:"لوحده"}
+    ];
+    const target=randomOne(states);
+    const optionIndexes=shuffledCopy([0,1,2,3]).slice(0,3);
+    if(!optionIndexes.includes(target.index))optionIndexes[0]=target.index;
+    return {
+      id:"connection-"+Date.now()+"-"+Math.random(),
+      type:"connection-practice",
+      prompt:`اختر الكلمة التي فيها م ${target.label}`,
+      spoken:`اِخْتَرِ الكَلِمَةَ الَّتِي فِيهَا حَرْفُ مِيمْ ${target.label}.`,
+      options:optionIndexes,
+      answer:target.index,
+      retryCount:0,
+      level
+    };
+  }
+
+  function buildPracticeQuestions(level){
+    let questions=[];
+    if(level===1){
+      questions=[
+        makeIdentifyPractice(level),makeIdentifyPractice(level),makeIdentifyPractice(level),
+        makeVisualVowelPractice(level),makeVisualVowelPractice(level),makeVisualVowelPractice(level)
+      ];
+    }else if(level===2){
+      questions=[
+        makeAudioPractice("vowel",level),makeAudioPractice("vowel",level),
+        makeAudioPractice("vowel",level),makeAudioPractice("vowel",level),
+        makeAudioPractice("madd",level),makeAudioPractice("madd",level),
+        makeAudioPractice("madd",level),makeAudioPractice("madd",level)
+      ];
+    }else if(level===3){
+      questions=[
+        makeClassifyPractice(level),makeClassifyPractice(level),makeClassifyPractice(level),makeClassifyPractice(level),
+        makePairPractice(level),makePairPractice(level),makePairPractice(level),makePairPractice(level)
+      ];
+    }else if(level===4){
+      questions=[
+        makePositionPractice(level),makePositionPractice(level),makePositionPractice(level),
+        makeConnectionPractice(level),makeConnectionPractice(level),
+        makeAudioPractice("vowel",level),makeAudioPractice("vowel",level),
+        makeAudioPractice("madd",level),makeAudioPractice("madd",level),
+        makePairPractice(level)
+      ];
+    }else{
+      questions=[
+        makeIdentifyPractice(level),makeIdentifyPractice(level),
+        makePositionPractice(level),makePositionPractice(level),makePositionPractice(level),
+        makeConnectionPractice(level),makeConnectionPractice(level),
+        makeAudioPractice("vowel",level),makeAudioPractice("vowel",level),
+        makeAudioPractice("madd",level),makeAudioPractice("madd",level),
+        makeClassifyPractice(level),makeClassifyPractice(level),
+        makePairPractice(level),makePairPractice(level)
+      ];
+    }
+    return shuffledCopy(questions);
+  }
+
+  function startPracticeLevel(level){
+    const config=PRACTICE_LEVELS[level-1];
+    state.practiceMode="run";
+    state.practiceLevel=level;
+    state.practiceQueue=buildPracticeQuestions(level);
+    state.practiceBaseCount=config.count;
+    state.practiceIndex=0;
+    state.practiceScore=0;
+    state.practiceAnswered=false;
+    state.practiceChoice=null;
+    render();save();
+    setTimeout(()=>speakPracticeQuestion(currentPracticeQuestion()),140);
+  }
+
+  function currentPracticeQuestion(){
+    return state.practiceQueue[state.practiceIndex]||null;
+  }
+
+  function practiceOptions(q){
+    if(!Array.isArray(q._order)){
+      q._order=shuffledWithMovedAnswer(q.options,q.answer,"practice-"+q.type+"-"+q.answer);
+    }
+    return q._order;
+  }
+
+  function speakPracticeQuestion(q){
+    if(!q)return;
+    if(q.type==="audio-sound"){
+      speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+      return;
+    }
+    if(q.type==="position-practice"){
+      speakPositionPrompt(q.example,{withInstruction:false});
+      return;
+    }
+    if(q.type==="classify"||q.type==="pair"||q.type==="visual-sound"){
+      speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+      return;
+    }
+    speak(q.spoken||q.prompt);
+  }
+
+  function practiceHubView(){
+    return `<section class="card practice-hub">
+      <span class="eyebrow">٧ · التدريب المكثف</span>
+      <h2>نتدرج من السهل إلى الإتقان</h2>
+      <p>كل مستوى أصعب قليلًا. إذا أخطأت، يعود السؤال لاحقًا في مستويات التدريب.</p>
+      <div class="practice-levels">
+        ${PRACTICE_LEVELS.map(level=>{
+          const result=state.practiceResults[level.id];
+          const unlocked=level.id<=state.practiceUnlocked;
+          const passed=!!result?.passed;
+          return `<button class="practice-level ${passed?"passed":""} ${unlocked?"":"locked"}" data-practice-level="${level.id}" ${unlocked?"":"disabled"}>
+            <span class="practice-level-icon">${level.icon}</span>
+            <span class="practice-level-copy">
+              <strong>${level.id}. ${level.title}</strong>
+              <small>${level.description}</small>
+              <em>${level.count} أسئلة · النجاح ${level.threshold}%${result?` · آخر نتيجة ${result.percent}%`:""}</em>
+            </span>
+            <span class="practice-level-state">${passed?"✓":unlocked?"ابدأ":"🔒"}</span>
+          </button>`;
+        }).join("")}
+      </div>
+    </section>`;
+  }
+
+  function practiceQuestionBody(q){
+    if(q.type==="identify"){
+      return `<div class="identify-grid challenge-letter-grid">${practiceOptions(q).map(v=>practiceChoiceButton(q,v,v,"letter")).join("")}</div>`;
+    }
+    if(q.type==="visual-sound"||q.type==="audio-sound"||q.type==="pair"){
+      const display=q.type==="pair"||q.type==="visual-sound"?`<div class="practice-focus-glyph">${q.display}</div>`:"";
+      return display+`<div class="sound-challenge-options">${practiceOptions(q).map(v=>practiceChoiceButton(q,v,v,"sound")).join("")}</div>`;
+    }
+    if(q.type==="classify"){
+      return `<div class="practice-focus-glyph">${q.display}</div>
+        <div class="practice-text-options">${practiceOptions(q).map(v=>practiceChoiceButton(q,v,v,"text")).join("")}</div>`;
+    }
+    if(q.type==="position-practice"){
+      const ex=q.example;
+      return `${trainWordTiles(ex)}
+        <div class="practice-position-options">
+          ${practiceOptions(q).map(pos=>practiceChoiceButton(q,pos,{start:"البداية",middle:"الوسط",end:"النهاية"}[pos],"position")).join("")}
+        </div>`;
+    }
+    if(q.type==="connection-practice"){
+      return `<div class="practice-word-options">${practiceOptions(q).map(idx=>practiceChoiceButton(q,idx,highlightExample(EXAMPLES[Number(idx)]),"word",true)).join("")}</div>`;
+    }
+    return "";
+  }
+
+  function practiceChoiceButton(q,value,label,type="text",html=false){
+    let cls="practice-choice "+type;
+    if(state.practiceAnswered&&String(value)===String(q.answer))cls+=" correct";
+    if(state.practiceAnswered&&String(value)===String(state.practiceChoice)&&String(value)!==String(q.answer))cls+=" wrong";
+    return `<button class="${cls}" data-practice-choice="${escapeHTML(value)}" ${state.practiceAnswered?"disabled":""}>${html?label:escapeHTML(label)}</button>`;
+  }
+
+  function practiceRunView(){
+    const config=PRACTICE_LEVELS[state.practiceLevel-1];
+    const q=currentPracticeQuestion();
+    if(!q)return practiceResultView();
+    const baseDone=Math.min(state.practiceIndex+1,state.practiceBaseCount);
+    const retryTag=q.retryCount>0?'<span class="retry-tag">مراجعة سابقة</span>':"";
+    const audio=(q.type==="audio-sound"||q.type==="classify"||q.type==="pair")
+      ? `<button class="btn soft sound-pill" data-practice-audio>🔊 اسمع مرة أخرى</button>`
+      : "";
+    return `<section class="card practice-run">
+      <div class="practice-run-head">
+        <span class="eyebrow">${config.icon} المستوى ${config.id} · ${config.title}</span>
+        <span class="practice-counter">${state.practiceIndex+1} / ${state.practiceQueue.length}</span>
+      </div>
+      ${retryTag}
+      <h2>${q.prompt}</h2>
+      ${audio}
+      ${practiceQuestionBody(q)}
+      ${state.practiceAnswered?`<div class="feedback ${String(state.practiceChoice)===String(q.answer)?"good":"bad"}">
+        ${String(state.practiceChoice)===String(q.answer)?"أَحْسَنْتَ! 🌟":"ستعود هذه المهارة مرة أخرى بعد قليل."}
+      </div>
+      <div class="actions"><button class="btn primary full" data-action="practice-next">${state.practiceIndex===state.practiceQueue.length-1?"النتيجة":"التالي"}</button></div>`:""}
+    </section>`;
+  }
+
+  function practiceResultView(){
+    const config=PRACTICE_LEVELS[state.practiceLevel-1];
+    const percent=Math.round(state.practiceScore/state.practiceBaseCount*100);
+    const passed=percent>=config.threshold;
+    const stars=percent>=95?3:percent>=85?2:percent>=config.threshold?1:0;
+    return `<section class="card lesson-card practice-result">
+      <div class="practice-result-icon">${passed?"🌟":"🌱"}</div>
+      <span class="eyebrow">نتيجة المستوى ${config.id}</span>
+      <h2>${passed?"تم اجتياز المستوى":"نحتاج جولة أخرى"}</h2>
+      <div class="practice-score">${percent}%</div>
+      <div class="practice-stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div>
+      <p>${passed?"أصبحت جاهزًا للمستوى التالي.":"سنغير ترتيب الأسئلة ونحاول مرة أخرى."}</p>
+      <div class="actions">
+        <button class="btn primary full" data-action="${passed?(config.id===PRACTICE_LEVELS.length?"practice-finish":"practice-next-level"):"practice-retry"}">
+          ${passed?(config.id===PRACTICE_LEVELS.length?"إنهاء الدرس":"المستوى التالي"):"أعد المستوى"}
+        </button>
+        <button class="btn" data-action="practice-hub">عرض المستويات</button>
+      </div>
+    </section>`;
+  }
+
+  function practiceView(){
+    if(state.practiceMode==="hub")return practiceHubView();
+    if(state.practiceMode==="result")return practiceResultView();
+    return practiceRunView();
+  }
+
   function challengeView(){
     const q=CHALLENGE[state.challengeIndex];
     if(q.type==="identify"){
@@ -741,16 +1078,17 @@
   function isCurrentChallengeCorrect(){return String(state.challengeChoice)===String(currentChallengeAnswer())}
 
   function finishView(){
-    const total=CHALLENGE.length;
-    const pct=Math.round(state.challengeScore/total*100);
+    const finalResult=state.practiceResults[PRACTICE_LEVELS.length];
+    const percent=finalResult?.percent??0;
+    const passed=!!finalResult?.passed;
     return `<section class="card lesson-card">
       <span class="eyebrow">اكتمل الدرس الذهبي</span>
-      <div class="finish-star">${pct>=80?"🌟":"🌱"}</div>
-      <h1>${pct>=80?"أَحْسَنْتَ في حرف م!":"تقدم جميل في حرف م"}</h1>
-      <div class="score">${state.challengeScore} / ${total}</div>
-      <p>${pct>=80?"أصبحت النسخة جاهزة لتقييمنا قبل تعميمها على بقية الحروف.":"يمكن إعادة التحدي مرة أخرى قبل تعميم النموذج."}</p>
+      <div class="finish-star">${passed?"🏆":"🌱"}</div>
+      <h1>${passed?"أَحْسَنْتَ! أتقنت حرف م":"أنجزت تدريب حرف م"}</h1>
+      <div class="score">${percent}%</div>
+      <p>${passed?"اجتزت خمسة مستويات من التدريب المتدرج حتى اختبار الإتقان.":"يمكن العودة إلى التدريب ورفع مستوى الإتقان."}</p>
       <div class="actions">
-        <button class="btn primary full" data-action="restart-challenge">أعد التحدي</button>
+        <button class="btn primary full" data-action="practice-return">العودة إلى مستويات التدريب</button>
         <button class="btn" data-action="restart-all">ابدأ درس م من جديد</button>
       </div>
       <p class="mini-note">Hurufi 2 · ${VERSION}</p>
@@ -768,7 +1106,7 @@
     else if(state.stage==="joining")screen.innerHTML=joiningView();
     else if(state.stage==="vowels")screen.innerHTML=vowelView();
     else if(state.stage==="madd")screen.innerHTML=maddView();
-    else if(state.stage==="challenge")screen.innerHTML=challengeView();
+    else if(state.stage==="practice")screen.innerHTML=practiceView();
     else screen.innerHTML=finishView();
     bind();
   }
@@ -860,9 +1198,31 @@
         setStage("madd",{speakText:"الآنَ نُطِيلُ الصَّوْتَ مَعَ حُرُوفِ المَدِّ."});
       }
       if(a==="madd-next"){
-        state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;
-        setStage("challenge",{speakText:CHALLENGE[0].spoken});
+        state.practiceMode="hub";
+        state.practiceUnlocked=Math.max(1,state.practiceUnlocked||1);
+        setStage("practice",{speakText:"نَبْدَأُ الآنَ التَّدْرِيبَ المُتَدَرِّجَ."});
       }
+      if(a==="practice-next"){
+        state.practiceIndex++;
+        state.practiceAnswered=false;
+        state.practiceChoice=null;
+        if(state.practiceIndex>=state.practiceQueue.length){
+          const config=PRACTICE_LEVELS[state.practiceLevel-1];
+          const percent=Math.round(state.practiceScore/state.practiceBaseCount*100);
+          const passed=percent>=config.threshold;
+          state.practiceResults[state.practiceLevel]={percent,passed};
+          if(passed)state.practiceUnlocked=Math.max(state.practiceUnlocked,Math.min(PRACTICE_LEVELS.length,state.practiceLevel+1));
+          state.practiceMode="result";
+          render();save();
+        }else{
+          render();save();
+          setTimeout(()=>speakPracticeQuestion(currentPracticeQuestion()),120);
+        }
+      }
+      if(a==="practice-retry")startPracticeLevel(state.practiceLevel);
+      if(a==="practice-next-level")startPracticeLevel(Math.min(PRACTICE_LEVELS.length,state.practiceLevel+1));
+      if(a==="practice-hub"){state.practiceMode="hub";render();save();}
+      if(a==="practice-finish"){setStage("finish");celebrate();}
       if(a==="challenge-next"){
         if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{
           if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});
@@ -871,6 +1231,7 @@
         },120);}
         else{setStage("finish");celebrate();}
       }
+      if(a==="practice-return"){state.practiceMode="hub";setStage("practice");}
       if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
       if(a==="restart-all"){localStorage.removeItem(STORAGE_KEY);location.reload();}
     }));
@@ -878,11 +1239,11 @@
 
   function resetStageData(){
     state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;
-    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();state.visitedVowels=new Set();state.visitedMadd=new Set();
+    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();state.visitedVowels=new Set();state.visitedMadd=new Set();state.practiceMode="hub";state.practiceLevel=1;state.practiceUnlocked=1;state.practiceResults={};state.practiceQueue=[];state.practiceIndex=0;state.practiceScore=0;state.practiceAnswered=false;state.practiceChoice=null;
   }
 
   function goBack(){
-    const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",challenge:"madd",finish:"challenge"};
+    const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",practice:"madd",finish:"practice"};
     const target=map[state.stage];
     if(target)setStage(target);
   }
@@ -901,6 +1262,8 @@
       localStorage.setItem(STORAGE_KEY,JSON.stringify({
         stage:state.stage,identifyIndex:state.identifyIndex,identifyScore:state.identifyScore,
         visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,trainRound:state.trainRound,visitedVowels:[...state.visitedVowels],visitedMadd:[...state.visitedMadd],
+        practiceMode:state.practiceMode,practiceLevel:state.practiceLevel,practiceUnlocked:state.practiceUnlocked,practiceResults:state.practiceResults,
+        practiceQueue:state.practiceQueue,practiceIndex:state.practiceIndex,practiceScore:state.practiceScore,practiceAnswered:state.practiceAnswered,practiceChoice:state.practiceChoice,practiceBaseCount:state.practiceBaseCount,
         challengeIndex:state.challengeIndex,challengeScore:state.challengeScore
       }));
     }catch{}
@@ -919,6 +1282,16 @@
       state.trainRound=Array.isArray(p.trainRound)&&p.trainRound.length===3?p.trainRound:createTrainRound();
       state.visitedVowels=new Set(Array.isArray(p.visitedVowels)?p.visitedVowels:[]);
       state.visitedMadd=new Set(Array.isArray(p.visitedMadd)?p.visitedMadd:[]);
+      state.practiceMode=["hub","run","result"].includes(p.practiceMode)?p.practiceMode:"hub";
+      state.practiceLevel=Math.max(1,Math.min(PRACTICE_LEVELS.length,Number(p.practiceLevel)||1));
+      state.practiceUnlocked=Math.max(1,Math.min(PRACTICE_LEVELS.length,Number(p.practiceUnlocked)||1));
+      state.practiceResults=p.practiceResults&&typeof p.practiceResults==="object"?p.practiceResults:{};
+      state.practiceQueue=Array.isArray(p.practiceQueue)?p.practiceQueue:[];
+      state.practiceIndex=Math.max(0,Number(p.practiceIndex)||0);
+      state.practiceScore=Math.max(0,Number(p.practiceScore)||0);
+      state.practiceAnswered=!!p.practiceAnswered;
+      state.practiceChoice=p.practiceChoice??null;
+      state.practiceBaseCount=Math.max(0,Number(p.practiceBaseCount)||0);
       state.challengeIndex=Math.max(0,Math.min(CHALLENGE.length-1,Number(p.challengeIndex)||0));
       state.challengeScore=Number(p.challengeScore)||0;
       state.identifyOrder=null;
