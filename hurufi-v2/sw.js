@@ -1,5 +1,5 @@
-const CACHE="hurufi-v2-alpha4";
-const VERSION="2.0.0-alpha.4";
+const CACHE="hurufi-v2-alpha5";
+const VERSION="2.0.0-alpha.5";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
