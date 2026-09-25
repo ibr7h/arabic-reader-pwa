@@ -1,5 +1,9 @@
 
 :root[data-learning-font="school"]{--learning-font:"Hurufi Naskh","Geeza Pro","SF Arabic",serif}
+:root[data-learning-font="scheherazade"]{--learning-font:"Hurufi Scheherazade","Hurufi Naskh","Geeza Pro",serif}
+:root[data-learning-font="harmattan"]{--learning-font:"Hurufi Harmattan","Hurufi Naskh","Geeza Pro",serif}
+:root[data-learning-font="sans"]{--learning-font:"Hurufi Noto Sans Arabic","Hurufi Cairo","Geeza Pro",sans-serif}
+:root[data-learning-font="kufi"]{--learning-font:"Hurufi Noto Kufi","Hurufi Cairo","Geeza Pro",sans-serif}
 :root[data-learning-font="baloo"]{--learning-font:"Hurufi Baloo","Geeza Pro","Hurufi Naskh",sans-serif}
 :root[data-learning-font="cairo"]{--learning-font:"Hurufi Cairo","SF Arabic","Geeza Pro",sans-serif}
 :root[data-learning-font="readex"]{--learning-font:"Hurufi Readex","SF Arabic","Geeza Pro",sans-serif}
@@ -295,6 +299,10 @@ p{font-size:var(--sm);line-height:1.75;color:var(--muted)}
 .font-options button.loading{opacity:.65}
 .font-sample{font-size:32px;line-height:1.35;white-space:nowrap}
 .sample-school{font-family:"Hurufi Naskh","Geeza Pro",serif}
+.sample-scheherazade{font-family:"Hurufi Scheherazade","Hurufi Naskh","Geeza Pro",serif}
+.sample-harmattan{font-family:"Hurufi Harmattan","Hurufi Naskh","Geeza Pro",serif}
+.sample-sans{font-family:"Hurufi Noto Sans Arabic","Hurufi Cairo","Geeza Pro",sans-serif}
+.sample-kufi{font-family:"Hurufi Noto Kufi","Hurufi Cairo","Geeza Pro",sans-serif}
 .sample-baloo{font-family:"Hurufi Baloo","Geeza Pro",sans-serif}
 .sample-cairo{font-family:"Hurufi Cairo","Geeza Pro",sans-serif}
 .sample-readex{font-family:"Hurufi Readex","Geeza Pro",sans-serif}
@@ -329,4 +337,62 @@ p{font-size:var(--sm);line-height:1.75;color:var(--muted)}
   .topbar{grid-template-columns:44px 1fr auto;padding-inline:11px}
   .top-actions{gap:5px}.top-actions .icon-button{width:40px;height:40px}
   .font-options{gap:7px}.font-options button{min-height:102px}
+}
+
+
+/* alpha.7 — professional Arabic voice controls */
+.voice-settings{
+  display:grid;
+  gap:9px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:linear-gradient(180deg,#fff,#f7fbff);
+  box-shadow:var(--shadow-soft)
+}
+.voice-field{display:grid;gap:6px}
+.voice-field>span{font-size:13px;font-weight:850;color:#59636e}
+.voice-field select{
+  width:100%;
+  min-height:46px;
+  border:1px solid #dce4ea;
+  border-radius:14px;
+  padding:8px 12px;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+  font-size:13px;
+  direction:rtl
+}
+.voice-test{
+  min-height:48px;
+  border:1px solid #cce8f5;
+  border-radius:15px;
+  background:linear-gradient(180deg,#fff,#edf9ff);
+  color:#24799e;
+  font-size:13px;
+  font-weight:850;
+  box-shadow:var(--shadow-soft)
+}
+.voice-test:active{transform:translateY(1px)}
+.voice-note{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.7
+}
+
+/* Keep every educational font readable at the same optical size */
+:root[data-learning-font="scheherazade"] .hero-letter,
+:root[data-learning-font="scheherazade"] .letter-choice,
+:root[data-learning-font="scheherazade"] .challenge-option.letter-option{
+  font-size:calc(var(--glyph-choice) * 1.08)
+}
+:root[data-learning-font="harmattan"] .hero-letter,
+:root[data-learning-font="harmattan"] .letter-choice,
+:root[data-learning-font="harmattan"] .challenge-option.letter-option{
+  font-size:calc(var(--glyph-choice) * 1.10)
+}
+:root[data-learning-font="kufi"] .big-word{
+  letter-spacing:.01em
 }
