@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.15";
+  const VERSION="2.0.0-alpha.16";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -367,9 +367,192 @@
 
   let preferredArabicVoice=null;
   let selectedVoiceId=loadVoicePreference();
-  let speechGeneration=0;
-  let phonicsGeneration=0;
-  let activePhonicsAudio=null;
+
+  const audioManager={
+    queue:[],
+    processing:false,
+    epoch:0,
+    activeAudio:null,
+    activeTtsCancel:null,
+
+    interrupt(){
+      this.epoch++;
+      const pending=this.queue.splice(0);
+      pending.forEach(item=>item.resolve(false));
+
+      if(this.activeAudio){
+        try{
+          this.activeAudio.pause();
+          this.activeAudio.currentTime=0;
+        }catch{}
+        this.activeAudio=null;
+      }
+
+      if(this.activeTtsCancel){
+        const cancel=this.activeTtsCancel;
+        this.activeTtsCancel=null;
+        cancel();
+      }
+
+      try{
+        if("speechSynthesis" in window)speechSynthesis.cancel();
+      }catch{}
+    },
+
+    enqueue(job,{replace=false}={}){
+      if(!state.sound)return Promise.resolve(false);
+      if(replace)this.interrupt();
+
+      const epoch=this.epoch;
+      return new Promise(resolve=>{
+        this.queue.push({job,resolve,epoch});
+        this.drain();
+      });
+    },
+
+    async drain(){
+      if(this.processing)return;
+      this.processing=true;
+
+      try{
+        while(this.queue.length){
+          if(!state.sound){
+            const pending=this.queue.splice(0);
+            pending.forEach(item=>item.resolve(false));
+            break;
+          }
+
+          const item=this.queue.shift();
+          if(item.epoch!==this.epoch){
+            item.resolve(false);
+            continue;
+          }
+
+          let ok=false;
+          try{
+            if(item.job.kind==="tts")ok=await this.runTTS(item.job,item.epoch);
+            else if(item.job.kind==="files")ok=await this.runFiles(item.job,item.epoch);
+          }catch{
+            ok=false;
+          }
+
+          item.resolve(ok);
+
+          if(item.epoch===this.epoch&&item.job.gapAfter){
+            await wait(item.job.gapAfter);
+          }
+        }
+      }finally{
+        this.processing=false;
+        if(this.queue.length&&state.sound)this.drain();
+      }
+    },
+
+    runTTS(job,epoch){
+      return new Promise(resolve=>{
+        if(epoch!==this.epoch||!state.sound||!("speechSynthesis" in window)){
+          resolve(false);
+          return;
+        }
+
+        if(!preferredArabicVoice)refreshArabicVoice();
+
+        const u=new SpeechSynthesisUtterance(job.text);
+        u.lang=preferredArabicVoice?.lang||"ar-SA";
+        u.rate=job.rate??.64;
+        u.pitch=job.pitch??1;
+        u.volume=1;
+        if(preferredArabicVoice)u.voice=preferredArabicVoice;
+
+        let finished=false;
+        const done=ok=>{
+          if(finished)return;
+          finished=true;
+          clearInterval(keepAlive);
+          clearTimeout(guard);
+          if(this.activeTtsCancel===cancel)this.activeTtsCancel=null;
+          resolve(ok);
+        };
+        const cancel=()=>done(false);
+        this.activeTtsCancel=cancel;
+
+        const keepAlive=setInterval(()=>{
+          if(epoch!==this.epoch){
+            done(false);
+            return;
+          }
+          try{
+            if(speechSynthesis.paused)speechSynthesis.resume();
+          }catch{}
+        },400);
+
+        const chars=Math.max(1,[...job.text].length);
+        const maxTime=Math.min(30000,Math.max(4000,(chars/Math.max(.38,u.rate))*310));
+        const guard=setTimeout(()=>{
+          try{speechSynthesis.cancel();}catch{}
+          done(false);
+        },maxTime);
+
+        u.onend=()=>done(true);
+        u.onerror=()=>done(false);
+        u.onpause=()=>{
+          if(epoch!==this.epoch)return;
+          try{speechSynthesis.resume();}catch{}
+        };
+
+        try{
+          speechSynthesis.resume();
+          speechSynthesis.speak(u);
+        }catch{
+          done(false);
+        }
+      });
+    },
+
+    runAudioFile(src,epoch){
+      return new Promise(resolve=>{
+        if(epoch!==this.epoch||!state.sound){
+          resolve(false);
+          return;
+        }
+
+        const audio=new Audio(src);
+        this.activeAudio=audio;
+        audio.preload="auto";
+        audio.volume=1;
+
+        let finished=false;
+        const done=ok=>{
+          if(finished)return;
+          finished=true;
+          audio.onended=null;
+          audio.onerror=null;
+          if(this.activeAudio===audio)this.activeAudio=null;
+          resolve(ok);
+        };
+
+        audio.onended=()=>done(true);
+        audio.onerror=()=>done(false);
+
+        try{
+          const promise=audio.play();
+          if(promise&&typeof promise.catch==="function")promise.catch(()=>done(false));
+        }catch{
+          done(false);
+        }
+      });
+    },
+
+    async runFiles(job,epoch){
+      for(let i=0;i<job.sources.length;i++){
+        if(epoch!==this.epoch||!state.sound)return false;
+        const ok=await this.runAudioFile(job.sources[i],epoch);
+        if(!ok)return false;
+        if(i<job.sources.length-1&&job.gapMs)await wait(job.gapMs);
+      }
+      return true;
+    }
+  };
 
   function loadVoicePreference(){
     try{return localStorage.getItem(VOICE_KEY)||"";}catch{return "";}
@@ -420,102 +603,55 @@
     populateVoiceSelect(voices);
   }
 
-  function stopPhonicsAudio(){
-    phonicsGeneration++;
-    if(activePhonicsAudio){
-      try{
-        activePhonicsAudio.pause();
-        activePhonicsAudio.currentTime=0;
-      }catch{}
-      activePhonicsAudio=null;
-    }
-  }
-
   function stopSpeech(){
-    speechGeneration++;
-    try{speechSynthesis.cancel();}catch{}
-    stopPhonicsAudio();
+    audioManager.interrupt();
   }
 
-  function stopTTSOnly(){
-    speechGeneration++;
-    try{speechSynthesis.cancel();}catch{}
-  }
-
-  function playAudioFile(src,generation){
-    return new Promise(resolve=>{
-      if(generation!==phonicsGeneration||!state.sound){resolve(false);return;}
-      const audio=new Audio(src);
-      activePhonicsAudio=audio;
-      audio.preload="auto";
-      audio.volume=1;
-
-      let finished=false;
-      const done=ok=>{
-        if(finished)return;
-        finished=true;
-        audio.onended=null;
-        audio.onerror=null;
-        if(activePhonicsAudio===audio)activePhonicsAudio=null;
-        resolve(ok);
-      };
-
-      audio.onended=()=>done(true);
-      audio.onerror=()=>done(false);
-
-      try{
-        const promise=audio.play();
-        if(promise&&typeof promise.catch==="function")promise.catch(()=>done(false));
-      }catch{
-        done(false);
-      }
-    });
-  }
-
-  async function playPhonics(glyph,{repeat=false}={}){
-    if(!state.sound)return;
+  function playPhonics(glyph,{repeat=false,replace=false}={}){
+    if(!state.sound)return Promise.resolve(false);
     const src=PHONICS_AUDIO[glyph];
     if(!src){
       const profile=soundProfile(glyph);
-      return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
+      return speakOnce(repeat?profile.repeat:profile.single,{
+        rate:profile.rate,
+        pitch:profile.pitch,
+        replace
+      });
     }
 
-    stopTTSOnly();
-    stopPhonicsAudio();
-    const generation=phonicsGeneration;
-    const count=repeat?2:1;
-
-    for(let i=0;i<count;i++){
-      const ok=await playAudioFile(src,generation);
-      if(generation!==phonicsGeneration)return;
-      if(!ok){
-        const profile=soundProfile(glyph);
-        return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
-      }
-      if(i<count-1)await wait(120);
-    }
+    const sources=repeat?[src,src]:[src];
+    return audioManager.enqueue(
+      {kind:"files",sources,gapMs:120},
+      {replace}
+    ).then(ok=>{
+      if(ok)return true;
+      if(!state.sound)return false;
+      const profile=soundProfile(glyph);
+      return speakOnce(repeat?profile.repeat:profile.single,{
+        rate:profile.rate,
+        pitch:profile.pitch,
+        replace:false
+      });
+    });
   }
 
-  async function playShortThenLong(shortGlyph,longGlyph){
-    if(!state.sound)return;
+  function playShortThenLong(shortGlyph,longGlyph,{replace=false}={}){
+    if(!state.sound)return Promise.resolve(false);
     const shortSrc=PHONICS_AUDIO[shortGlyph];
     const longSrc=PHONICS_AUDIO[longGlyph];
 
-    if(!shortSrc||!longSrc)return speakShortThenLongFallback(shortGlyph,longGlyph);
+    if(!shortSrc||!longSrc){
+      return speakShortThenLongFallback(shortGlyph,longGlyph,{replace});
+    }
 
-    stopTTSOnly();
-    stopPhonicsAudio();
-    const generation=phonicsGeneration;
-
-    const first=await playAudioFile(shortSrc,generation);
-    if(generation!==phonicsGeneration)return;
-    if(!first)return speakShortThenLongFallback(shortGlyph,longGlyph);
-
-    await wait(170);
-    if(generation!==phonicsGeneration)return;
-
-    const second=await playAudioFile(longSrc,generation);
-    if(!second&&generation===phonicsGeneration)return speakShortThenLongFallback(shortGlyph,longGlyph);
+    return audioManager.enqueue(
+      {kind:"files",sources:[shortSrc,longSrc],gapMs:170},
+      {replace}
+    ).then(ok=>{
+      if(ok)return true;
+      if(!state.sound)return false;
+      return speakShortThenLongFallback(shortGlyph,longGlyph,{replace:false});
+    });
   }
 
   function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
@@ -537,61 +673,15 @@
       .trim();
   }
 
-  function speakOnce(text,{rate=.64,pitch=1}={}){
-    if(!state.sound || !("speechSynthesis" in window)) return Promise.resolve();
-    if(!preferredArabicVoice)refreshArabicVoice();
-
+  function speakOnce(text,{rate=.64,pitch=1,replace=false}={}){
+    if(!state.sound||!("speechSynthesis" in window))return Promise.resolve(false);
     const clean=normalizeSpeechText(text);
-    if(!clean)return Promise.resolve();
+    if(!clean)return Promise.resolve(false);
 
-    const generation=++speechGeneration;
-    try{speechSynthesis.cancel();}catch{}
-
-    return new Promise(resolve=>{
-      const launch=()=>{
-        if(generation!==speechGeneration){resolve();return;}
-        const u=new SpeechSynthesisUtterance(clean);
-        u.lang=preferredArabicVoice?.lang||"ar-SA";
-        u.rate=rate;
-        u.pitch=pitch;
-        u.volume=1;
-        if(preferredArabicVoice)u.voice=preferredArabicVoice;
-
-        let finished=false;
-        const keepAlive=setInterval(()=>{
-          if(generation!==speechGeneration){
-            done();
-            return;
-          }
-          try{
-            if(speechSynthesis.paused)speechSynthesis.resume();
-          }catch{}
-        },450);
-
-        const maxTime=Math.min(22000,Math.max(2600,([...clean].length/Math.max(.38,rate))*260));
-        const guard=setTimeout(done,maxTime);
-
-        function done(){
-          if(finished)return;
-          finished=true;
-          clearInterval(keepAlive);
-          clearTimeout(guard);
-          resolve();
-        }
-
-        u.onend=done;
-        u.onerror=done;
-
-        try{
-          speechSynthesis.resume();
-          speechSynthesis.speak(u);
-        }catch{
-          done();
-        }
-      };
-
-      setTimeout(launch,90);
-    });
+    return audioManager.enqueue(
+      {kind:"tts",text:clean,rate,pitch},
+      {replace}
+    );
   }
 
   function sequenceText(parts){
@@ -601,14 +691,14 @@
       .join("، ");
   }
 
-  function speakSequence(parts){
+  function speakSequence(parts,{replace=false}={}){
     if(!Array.isArray(parts)||!parts.length)return Promise.resolve();
     const rates=parts.map(p=>Number(p.rate)).filter(Number.isFinite);
     const rate=rates.length
       ? Math.max(.46,Math.min(.68,rates.reduce((sum,v)=>sum+v,0)/rates.length))
       : .62;
     const pitch=parts.find(p=>Number.isFinite(Number(p.pitch)))?.pitch??1;
-    return speakOnce(sequenceText(parts)+".",{rate,pitch});
+    return speakOnce(sequenceText(parts)+".",{rate,pitch,replace});
   }
 
   function soundProfile(glyph){
@@ -619,56 +709,56 @@
     return String(profile.single||"").replace(/[،؛,.؟!\s]+$/,"");
   }
 
-  function speakEducationalSound(glyph,{repeat=false}={}){
-    return playPhonics(glyph,{repeat});
+  function speakEducationalSound(glyph,{repeat=false,replace=false}={}){
+    return playPhonics(glyph,{repeat,replace});
   }
 
-  function speakShortThenLongFallback(shortGlyph,longGlyph){
+  function speakShortThenLongFallback(shortGlyph,longGlyph,{replace=false}={}){
     const short=soundProfile(shortGlyph);
     const long=soundProfile(longGlyph);
     return speakOnce(
       bareSoundText(short)+"، "+bareSoundText(long)+".",
-      {rate:.48,pitch:1}
+      {rate:.48,pitch:1,replace}
     );
   }
 
-  function speakShortThenLong(shortGlyph,longGlyph){
-    return playShortThenLong(shortGlyph,longGlyph);
+  function speakShortThenLong(shortGlyph,longGlyph,{replace=false}={}){
+    return playShortThenLong(shortGlyph,longGlyph,{replace});
   }
 
-  function speakWord(example,{mode="full"}={}){
+  function speakWord(example,{mode="full",replace=false}={}){
     const text=mode==="pause"?example.pause:(mode==="sentence"?example.sentence:example.full);
     const voiced=mode==="pause"?(text||example.spoken):((text||example.spoken)+"،");
     return speakSequence([
       {text:voiced,rate:.56,pitch:1,pauseAfter:90}
-    ]);
+    ],{replace});
   }
 
-  function speakLetterName(){
-    return speakSequence([{text:TARGET_SPOKEN,rate:.56,pauseAfter:60}]);
+  function speakLetterName({replace=false}={}){
+    return speakSequence([{text:TARGET_SPOKEN,rate:.56,pauseAfter:60}],{replace});
   }
 
-  function speakPositionPrompt(example,{withInstruction=true}={}){
+  function speakPositionPrompt(example,{withInstruction=true,replace=false}={}){
     const instruction=withInstruction?" اِضْغَطْ عَلَى العَرَبَةِ الصَّحِيحَةِ.":"";
     return speakOnce(
       "أَيْنَ حَرْفُ المِيمِ فِي هٰذِهِ الكَلِمَةِ؟ "+(example.full||example.spoken)+"،"+instruction,
-      {rate:.60,pitch:1}
+      {rate:.60,pitch:1,replace}
     );
   }
 
-  function speakWordAndConnection(example,label){
+  function speakWordAndConnection(example,label,{replace=false}={}){
     return speakOnce(
       (example.full||example.spoken)+"، حَرْفُ المِيمِ "+label+".",
-      {rate:.58,pitch:1}
+      {rate:.58,pitch:1,replace}
     );
   }
 
-  function speak(text,{rate=.68}={}){
+  function speak(text,{rate=.68,replace=false}={}){
     if(!state.sound || !("speechSynthesis" in window)) return;
     const raw=String(text||"").trim();
     const example=EXAMPLES.find(ex=>raw.includes(ex.spoken)||raw.includes(ex.pause)||raw.includes(ex.full)||raw.includes(ex.sentence));
     if(example){
-      if([example.spoken,example.pause,example.full,example.sentence].includes(raw))return speakWord(example,{mode:"full"});
+      if([example.spoken,example.pause,example.full,example.sentence].includes(raw))return speakWord(example,{mode:"full",replace});
       const token=[example.full,example.sentence,example.pause,example.spoken].find(t=>t&&raw.includes(t))||example.spoken;
       const parts=raw.split(token);
       const sequence=[];
@@ -677,9 +767,9 @@
       if(before)sequence.push({text:before,rate:Math.max(.64,rate),pauseAfter:130});
       sequence.push({text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:140});
       if(after)sequence.push({text:after,rate:Math.max(.64,rate)});
-      return speakSequence(sequence);
+      return speakSequence(sequence,{replace});
     }
-    return speakOnce(raw,{rate,pitch:1});
+    return speakOnce(raw,{rate,pitch:1,replace});
   }
 
   if("speechSynthesis" in window){
