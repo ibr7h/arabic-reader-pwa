@@ -86,7 +86,7 @@
     {type:"position", example:0},
     {type:"position", example:1},
     {type:"position", example:2},
-    {type:"connection", prompt:"أي كلمة فيها م متصل من الجهتين؟", spoken:"أَيُّ كَلِمَةٍ فِيهَا حَرْفُ مِيمْ مُتَّصِلٌ مِنَ الجِهَتَيْنِ؟", options:[0,1,2], answer:1},
+    {type:"connection", prompt:"أي كلمة فيها م متصل من الجهتين؟", spoken:"أَيُّ كَلِمَةٍ فِيهَا حَرْفُ المِيمِ مُتَّصِلٌ مِنَ الجِهَتَيْنِ؟", options:[0,1,2], answer:1},
     {type:"sound", soundKind:"vowel", prompt:"أي صوت سمعت؟", spoken:"مِ", options:["مَ","مِ","مُ"], answer:"مِ"},
     {type:"sound", soundKind:"madd", prompt:"أي مدّ سمعت؟", spoken:"مُو", options:["مَا","مِي","مُو"], answer:"مُو"}
   ];
@@ -640,7 +640,7 @@
     return `<section class="card">
       <span class="eyebrow">٢ · م داخل الكلمات</span>
       <h2>الحرف الأحمر هو م</h2>
-      <p>اضغط كل كلمة واسمعها. لاحظ أن م ينتقل من البداية إلى الوسط ثم النهاية.</p>
+      <p>المس كل كلمة واستمع إليها. لاحظ أن م ينتقل من البداية إلى الوسط ثم النهاية.</p>
       <div class="words-stack">
         ${primary.map((ex,i)=>`<button class="word-card ${state.visitedWords.has(i)?"visited":""}" data-word="${i}">
           <span class="big-word">${highlightExample(ex)}</span>
@@ -697,6 +697,13 @@
     previous:["يمسك ما قبله","يتصل بالحرف الذي قبله"]
   };
 
+  const CONNECTION_SPOKEN={
+    isolated:"لَوْحَدِهِ، لَا يَتَّصِلُ بِمَا قَبْلَهُ أَوْ بَعْدَهُ",
+    next:"يَتَّصِلُ بِالحَرْفِ الَّذِي بَعْدَهُ",
+    both:"يَتَّصِلُ بِمَا قَبْلَهُ وَبِمَا بَعْدَهُ",
+    previous:"يَتَّصِلُ بِالحَرْفِ الَّذِي قَبْلَهُ"
+  };
+
   function connectionLine(stateName){
     const cls=stateName==="both"?"both":stateName==="next"?"right":stateName==="previous"?"left":"";
     return `<div class="connection-line ${cls}"></div>`;
@@ -707,7 +714,7 @@
     return `<section class="card">
       <span class="eyebrow">٤ · كيف يتصل م؟</span>
       <h2>ننظر إلى م داخل كلمة</h2>
-      <p>المكان شيء، والاتصال شيء آخر. اضغط الكلمات لتسمعها ولاحظ شكل م الأحمر.</p>
+      <p>المكان شيء، والاتصال شيء آخر. المس الكلمات لتسمعها ولاحظ شكل م الأحمر.</p>
       <div class="connection-grid">
         ${order.map(idx=>{
           const ex=EXAMPLES[idx],meta=CONNECTION_LABELS[ex.connection];
@@ -727,7 +734,7 @@
     return `<section class="card sound-learning-card">
       <span class="eyebrow">٥ · الحركات القصيرة</span>
       <h2>كيف يتغير صوت م؟</h2>
-      <p>اضغط كل بطاقة واسمع الصوت القصير. الحركة تغيّر صوت الحرف، لكنها لا تضيف حرفًا جديدًا.</p>
+      <p>المس كل بطاقة واستمع إلى الصوت القصير. الحركة تغيّر صوت الحرف، لكنها لا تضيف حرفًا جديدًا.</p>
       <div class="sound-cards">
         ${SHORT_VOWELS.map(item=>`<button class="sound-card ${item.color} ${state.visitedVowels.has(item.id)?"visited":""}" data-vowel="${item.id}">
           <span class="sound-glyph">${item.glyph}</span>
@@ -748,7 +755,7 @@
     return `<section class="card sound-learning-card">
       <span class="eyebrow">٦ · المدود</span>
       <h2>نُطيل الصوت</h2>
-      <p>اضغط كل صف واسمع الفرق: الحركة قصيرة، ثم يأتي حرف المد فيصبح الصوت أطول.</p>
+      <p>المس كل مثال واستمع إلى الفرق: الحركة قصيرة، ثم يأتي حرف المد فيصبح الصوت أطول.</p>
       <div class="madd-stack">
         ${MADD_FORMS.map(item=>`<button class="madd-card ${item.color} ${state.visitedMadd.has(item.id)?"visited":""}" data-madd="${item.id}">
           <span class="madd-short">${item.short}</span>
@@ -894,7 +901,7 @@
       id:"connection-"+Date.now()+"-"+Math.random(),
       type:"connection-practice",
       prompt:`اختر الكلمة التي فيها م ${target.label}`,
-      spoken:`اِخْتَرِ الكَلِمَةَ الَّتِي فِيهَا حَرْفُ مِيمْ ${target.label}.`,
+      spoken:`اِخْتَرِ الكَلِمَةَ الَّتِي فِيهَا حَرْفُ المِيمِ ${CONNECTION_SPOKEN[EXAMPLES[target.index].connection]}.`,
       options:optionIndexes,
       answer:target.index,
       retryCount:0,
@@ -1181,14 +1188,14 @@
     {
       type:"text",
       prompt:"على أي إصبع يستند القلم؟",
-      spoken:"عَلَى أَيِّ إِصْبَعٍ يَسْتَنِدُ القَلَم؟",
+      spoken:"عَلَى أَيِّ إِصْبَعٍ يَسْتَنِدُ القَلَمُ؟",
       options:["الإصبع الأوسط","الخنصر","طرف السبابة فقط"],
       answer:"الإصبع الأوسط"
     },
     {
       type:"visual",
       prompt:"أي مسكة بعيدة جدًا عن رأس القلم؟",
-      spoken:"أَيُّ مَسْكَةٍ بَعِيدَةٌ جِدًّا عَنْ رَأْسِ القَلَم؟",
+      spoken:"أَيُّ مَسْكَةٍ بَعِيدَةٌ جِدًّا عَنْ رَأْسِ القَلَمِ؟",
       options:["high","tripod","relaxed"],
       answer:"high"
     }
@@ -1379,7 +1386,7 @@
 
     screen.querySelectorAll("[data-connection-word]").forEach(btn=>btn.addEventListener("click",()=>{
       const idx=Number(btn.dataset.connectionWord);const ex=EXAMPLES[idx],meta=CONNECTION_LABELS[ex.connection];
-      speakWordAndConnection(ex,meta[0]);
+      speakWordAndConnection(ex,CONNECTION_SPOKEN[ex.connection]||meta[0]);
     }));
 
     screen.querySelectorAll("[data-vowel]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -1406,7 +1413,7 @@
       if(state.challengeAnswered)return;
       state.challengeAnswered=true;state.challengeChoice=btn.dataset.challenge;
       if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
-      else speak("حاول أن تلاحظ حرف ميم.");
+      else speak("حَاوِلْ أَنْ تُلَاحِظَ حَرْفَ المِيمِ.");
       render();save();
     }));
 
@@ -1478,7 +1485,7 @@
       }
       if(a==="joining-next"){
         state.visitedVowels=new Set();
-        setStage("vowels",{speakText:"نَتَعَلَّمُ الآنَ حَرَكَاتِ حَرْفِ مِيمْ."});
+        setStage("vowels",{speakText:"نَتَعَلَّمُ الآنَ الحَرَكَاتِ القَصِيرَةَ لِحَرْفِ المِيمِ."});
       }
       if(a==="vowels-next"){
         state.visitedMadd=new Set();
