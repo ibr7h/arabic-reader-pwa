@@ -1,6 +1,7 @@
-const CACHE="hurufi-v2-alpha14";
+const CACHE="hurufi-v2-alpha15";
 const FONT_CACHE="hurufi-v2-fonts-v2";
-const VERSION="2.0.0-alpha.14";
+const AUDIO_CACHE="hurufi-v2-audio-v1";
+const VERSION="2.0.0-alpha.15";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
@@ -9,6 +10,15 @@ const SHELL=[
   ["./manifest.webmanifest","./manifest.webmanifest?v="+VERSION]
 ];
 const STATIC=["../assets/icons/icon-192.png","../assets/icons/icon-512.png"];
+const AUDIO_ASSETS=[
+  "./assets/audio/phonics/ma-short.mp3",
+  "./assets/audio/phonics/mi-short.mp3",
+  "./assets/audio/phonics/mu-short.mp3",
+  "./assets/audio/phonics/maa-long.mp3",
+  "./assets/audio/phonics/mii-long.mp3",
+  "./assets/audio/phonics/muu-long.mp3"
+];
+
 const FONT_ASSETS=[
   "./assets/fonts/NotoNaskhArabic-VF.ttf",
   "./assets/fonts/ScheherazadeNew-Regular.ttf",
@@ -36,6 +46,17 @@ self.addEventListener("install",event=>{
     for(const url of STATIC){
       try{await cacheFresh(cache,url,url);}catch{}
     }
+    const audioCache=await caches.open(AUDIO_CACHE);
+    for(const url of AUDIO_ASSETS){
+      try{
+        const existing=await audioCache.match(url);
+        if(!existing){
+          const response=await fetch(url,{cache:"reload"});
+          if(response.ok)await audioCache.put(url,response.clone());
+        }
+      }catch{}
+    }
+
     const fontCache=await caches.open(FONT_CACHE);
     for(const url of FONT_ASSETS){
       try{
@@ -55,7 +76,8 @@ self.addEventListener("activate",event=>{
     const keys=await caches.keys();
     await Promise.all([
       ...keys.filter(k=>k.startsWith("hurufi-v2-alpha")&&k!==CACHE).map(k=>caches.delete(k)),
-      ...keys.filter(k=>k.startsWith("hurufi-v2-fonts-")&&k!==FONT_CACHE).map(k=>caches.delete(k))
+      ...keys.filter(k=>k.startsWith("hurufi-v2-fonts-")&&k!==FONT_CACHE).map(k=>caches.delete(k)),
+      ...keys.filter(k=>k.startsWith("hurufi-v2-audio-")&&k!==AUDIO_CACHE).map(k=>caches.delete(k))
     ]);
     await self.clients.claim();
   })());
@@ -98,6 +120,20 @@ self.addEventListener("fetch",event=>{
       try{
         const response=await fetch(event.request);
         if(response.ok)await fontCache.put(event.request,response.clone());
+        return response;
+      }catch{return Response.error();}
+    })());
+    return;
+  }
+
+  if(url.origin===location.origin&&url.pathname.includes("/hurufi-v2/assets/audio/phonics/")&&url.pathname.endsWith(".mp3")){
+    event.respondWith((async()=>{
+      const audioCache=await caches.open(AUDIO_CACHE);
+      const cached=await audioCache.match(event.request);
+      if(cached)return cached;
+      try{
+        const response=await fetch(event.request);
+        if(response.ok)await audioCache.put(event.request,response.clone());
         return response;
       }catch{return Response.error();}
     })());
