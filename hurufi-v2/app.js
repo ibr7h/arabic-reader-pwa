@@ -477,8 +477,9 @@
 
   function speakWord(example,{mode="full"}={}){
     const text=mode==="pause"?example.pause:(mode==="sentence"?example.sentence:example.full);
+    const voiced=mode==="pause"?(text||example.spoken):((text||example.spoken)+"،");
     return speakSequence([
-      {text:text||example.spoken,rate:.56,pitch:1,pauseAfter:90}
+      {text:voiced,rate:.56,pitch:1,pauseAfter:90}
     ]);
   }
 
@@ -489,7 +490,7 @@
   function speakPositionPrompt(example,{withInstruction=true}={}){
     const parts=[
       {text:"أَيْنَ حَرْفُ المِيمِ فِي الكَلِمَةِ الآتِيَةِ؟",rate:.68,pauseAfter:180},
-      {text:example.full||example.spoken,rate:.56,pauseAfter:150}
+      {text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:150}
     ];
     if(withInstruction)parts.push({text:"اِضْغَطِ العَرَبَةَ المُنَاسِبَةَ.",rate:.68});
     return speakSequence(parts);
@@ -497,7 +498,7 @@
 
   function speakWordAndConnection(example,label){
     return speakSequence([
-      {text:example.full||example.spoken,rate:.56,pauseAfter:170},
+      {text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:170},
       {text:"حَرْفُ المِيمِ. "+label+".",rate:.66}
     ]);
   }
@@ -514,7 +515,7 @@
       const before=(parts[0]||"").trim().replace(/[،,:؛\-–—]+$/,"");
       const after=(parts.slice(1).join(token)||"").trim().replace(/^[؟?!،,:؛\s]+/,"");
       if(before)sequence.push({text:before,rate:Math.max(.64,rate),pauseAfter:130});
-      sequence.push({text:example.full||example.spoken,rate:.56,pauseAfter:140});
+      sequence.push({text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:140});
       if(after)sequence.push({text:after,rate:Math.max(.64,rate)});
       return speakSequence(sequence);
     }
@@ -1591,7 +1592,7 @@
       stopSpeech();
       setTimeout(()=>speakSequence([
         {text:TARGET_SPOKEN,rate:.56,pauseAfter:130},
-        {text:EXAMPLES[0].pause,rate:.54}
+        {text:EXAMPLES[0].full+"،",rate:.56}
       ]),70);
     });
   }
@@ -1600,8 +1601,8 @@
     voiceTest.addEventListener("click",()=>{
       speakSequence([
         {text:TARGET_SPOKEN,rate:.56,pauseAfter:150},
-        {text:EXAMPLES[0].full,rate:.56,pauseAfter:160},
-        {text:EXAMPLES[2].full,rate:.56,pauseAfter:160}
+        {text:EXAMPLES[0].full+"،",rate:.56,pauseAfter:160},
+        {text:EXAMPLES[2].full+"،",rate:.56,pauseAfter:160}
       ]).then(()=>speakShortThenLong("مَ","مَا"));
     });
   }
