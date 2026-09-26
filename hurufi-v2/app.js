@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.13";
+  const VERSION="2.0.0-alpha.14";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -61,12 +61,18 @@
   ];
 
   const SOUND_PROFILES={
-    "مَ":{tts:"مَـ.",rate:.52,pitch:1},
-    "مِ":{tts:"مِـ.",rate:.52,pitch:1},
-    "مُ":{tts:"مُـ.",rate:.52,pitch:1},
-    "مَا":{tts:"مَا.",rate:.46,pitch:1},
-    "مِي":{tts:"مِي.",rate:.46,pitch:1},
-    "مُو":{tts:"مُو.",rate:.46,pitch:1}
+    "مَ":{single:"مَ.",repeat:"مَ، مَ.",rate:.50,pitch:1},
+    "مِ":{single:"مِ.",repeat:"مِ، مِ.",rate:.50,pitch:1},
+    "مُ":{single:"مُ.",repeat:"مُ، مُ.",rate:.50,pitch:1},
+    "مَا":{single:"مَا.",repeat:"مَا، مَا.",rate:.47,pitch:1},
+    "مِي":{single:"مِي.",repeat:"مِي، مِي.",rate:.47,pitch:1},
+    "مُو":{single:"مُو.",repeat:"مُو، مُو.",rate:.47,pitch:1}
+  };
+
+  const POSITION_SPOKEN={
+    start:"بِدَايَةِ الكَلِمَةِ",
+    middle:"وَسَطِ الكَلِمَةِ",
+    end:"نِهَايَةِ الكَلِمَةِ"
   };
 
   const IDENTIFY_ROUNDS=[
@@ -76,7 +82,7 @@
   ];
 
   const CHALLENGE=[
-    {type:"identify", prompt:"أين حرف م؟", spoken:"أَيْنَ حَرْفُ مِيمْ؟", options:["ن","م","هـ","ب"], answer:"م"},
+    {type:"identify", prompt:"أين حرف م؟", spoken:"أَيْنَ حَرْفُ المِيمِ؟", options:["ن","م","هـ","ب"], answer:"م"},
     {type:"position", example:0},
     {type:"position", example:1},
     {type:"position", example:2},
@@ -415,64 +421,111 @@
     return Math.min(9000,Math.max(1800,(chars/Math.max(.35,rate))*115));
   }
 
-  function speakPart(part,generation){
-    return new Promise(resolve=>{
-      if(generation!==speechGeneration || !state.sound || !("speechSynthesis" in window)){resolve();return;}
-      const text=String(part.text||"").trim();
-      if(!text){resolve();return;}
-      const u=new SpeechSynthesisUtterance(text);
-      u.lang=preferredArabicVoice?.lang||"ar-SA";
-      u.rate=part.rate??.7;
-      u.pitch=part.pitch??1;
-      u.volume=1;
-      if(preferredArabicVoice)u.voice=preferredArabicVoice;
+  function normalizeSpeechText(text){
+    return String(text||"")
+      .replace(/اضغط الكلمات واسمعها\. الحرف الأحمر هو حرف ميم\.?/g,"اِسْتَمِعْ إِلَى الكَلِمَاتِ. الحَرْفُ الأَحْمَرُ هُوَ المِيمُ.")
+      .replace(/الآن نرى كيف يتصل حرف ميم داخل الكلمات\.?/g,"الآنَ نَرَى كَيْفَ يَتَّصِلُ حَرْفُ المِيمِ دَاخِلَ الكَلِمَاتِ.")
+      .replace(/حاول أن تلاحظ حرف ميم\.?/g,"حَاوِلْ أَنْ تُلَاحِظَ حَرْفَ المِيمِ.")
+      .replace(/حرف ميم/g,"حَرْفُ المِيمِ")
+      .replace(/اضغط/g,"اِخْتَرْ")
+      .replace(/أضغط/g,"اِخْتَرْ")
+      .trim();
+  }
 
-      let finished=false;
-      const done=()=>{
-        if(finished)return;
-        finished=true;
-        clearTimeout(timer);
-        resolve();
+  function speakOnce(text,{rate=.64,pitch=1}={}){
+    if(!state.sound || !("speechSynthesis" in window)) return Promise.resolve();
+    if(!preferredArabicVoice)refreshArabicVoice();
+
+    const clean=normalizeSpeechText(text);
+    if(!clean)return Promise.resolve();
+
+    const generation=++speechGeneration;
+    try{speechSynthesis.cancel();}catch{}
+
+    return new Promise(resolve=>{
+      const launch=()=>{
+        if(generation!==speechGeneration){resolve();return;}
+        const u=new SpeechSynthesisUtterance(clean);
+        u.lang=preferredArabicVoice?.lang||"ar-SA";
+        u.rate=rate;
+        u.pitch=pitch;
+        u.volume=1;
+        if(preferredArabicVoice)u.voice=preferredArabicVoice;
+
+        let finished=false;
+        const keepAlive=setInterval(()=>{
+          if(generation!==speechGeneration){
+            clearInterval(keepAlive);
+            return;
+          }
+          try{
+            if(speechSynthesis.paused)speechSynthesis.resume();
+          }catch{}
+        },450);
+
+        const maxTime=Math.min(22000,Math.max(2600,([...clean].length/Math.max(.38,rate))*260));
+        const guard=setTimeout(done,maxTime);
+
+        function done(){
+          if(finished)return;
+          finished=true;
+          clearInterval(keepAlive);
+          clearTimeout(guard);
+          resolve();
+        }
+
+        u.onend=done;
+        u.onerror=done;
+
+        try{
+          speechSynthesis.resume();
+          speechSynthesis.speak(u);
+        }catch{
+          done();
+        }
       };
-      u.onend=done;
-      u.onerror=done;
-      const timer=setTimeout(done,utteranceDurationGuard(text,u.rate));
-      try{speechSynthesis.speak(u);}catch{done();}
+
+      setTimeout(launch,90);
     });
   }
 
-  async function speakSequence(parts){
-    if(!state.sound || !("speechSynthesis" in window)) return;
-    if(!preferredArabicVoice)refreshArabicVoice();
-    const generation=++speechGeneration;
-    try{speechSynthesis.cancel();}catch{}
-    await wait(45);
-    for(const part of parts){
-      if(generation!==speechGeneration)return;
-      await speakPart(part,generation);
-      if(generation!==speechGeneration)return;
-      if(part.pauseAfter)await wait(part.pauseAfter);
-    }
+  function sequenceText(parts){
+    return parts
+      .map(part=>normalizeSpeechText(part.text).replace(/[،؛,.؟!\s]+$/,""))
+      .filter(Boolean)
+      .join("، ");
+  }
+
+  function speakSequence(parts){
+    if(!Array.isArray(parts)||!parts.length)return Promise.resolve();
+    const rates=parts.map(p=>Number(p.rate)).filter(Number.isFinite);
+    const rate=rates.length
+      ? Math.max(.46,Math.min(.68,rates.reduce((sum,v)=>sum+v,0)/rates.length))
+      : .62;
+    const pitch=parts.find(p=>Number.isFinite(Number(p.pitch)))?.pitch??1;
+    return speakOnce(sequenceText(parts)+".",{rate,pitch});
   }
 
   function soundProfile(glyph){
-    return SOUND_PROFILES[glyph]||{tts:glyph,rate:.52,pitch:1};
+    return SOUND_PROFILES[glyph]||{single:glyph+".",repeat:glyph+"، "+glyph+".",rate:.50,pitch:1};
+  }
+
+  function bareSoundText(profile){
+    return String(profile.single||"").replace(/[،؛,.؟!\s]+$/,"");
   }
 
   function speakEducationalSound(glyph,{repeat=false}={}){
     const profile=soundProfile(glyph);
-    const parts=[{text:profile.tts,rate:profile.rate,pitch:profile.pitch,pauseAfter:repeat?180:80}];
-    if(repeat)parts.push({text:profile.tts,rate:profile.rate,pitch:profile.pitch,pauseAfter:70});
-    return speakSequence(parts);
+    return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
   }
 
   function speakShortThenLong(shortGlyph,longGlyph){
     const short=soundProfile(shortGlyph);
     const long=soundProfile(longGlyph);
-    return speakSequence([
-      {text:short.tts,rate:short.rate,pitch:short.pitch,pauseAfter:260},
-      {text:long.tts,rate:long.rate,pitch:long.pitch,pauseAfter:100}
-    ]);
+    return speakOnce(
+      bareSoundText(short)+"، "+bareSoundText(long)+".",
+      {rate:.48,pitch:1}
+    );
   }
 
   function speakWord(example,{mode="full"}={}){
@@ -488,19 +541,18 @@
   }
 
   function speakPositionPrompt(example,{withInstruction=true}={}){
-    const parts=[
-      {text:"أَيْنَ حَرْفُ المِيمِ فِي الكَلِمَةِ الآتِيَةِ؟",rate:.68,pauseAfter:180},
-      {text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:150}
-    ];
-    if(withInstruction)parts.push({text:"اِضْغَطِ العَرَبَةَ المُنَاسِبَةَ.",rate:.68});
-    return speakSequence(parts);
+    const instruction=withInstruction?" اِخْتَرِ العَرَبَةَ الصَّحِيحَةَ.":"";
+    return speakOnce(
+      "أَيْنَ حَرْفُ المِيمِ فِي هٰذِهِ الكَلِمَةِ؟ "+(example.full||example.spoken)+"،"+instruction,
+      {rate:.60,pitch:1}
+    );
   }
 
   function speakWordAndConnection(example,label){
-    return speakSequence([
-      {text:(example.full||example.spoken)+"،",rate:.56,pauseAfter:170},
-      {text:"حَرْفُ المِيمِ. "+label+".",rate:.66}
-    ]);
+    return speakOnce(
+      (example.full||example.spoken)+"، حَرْفُ المِيمِ "+label+".",
+      {rate:.58,pitch:1}
+    );
   }
 
   function speak(text,{rate=.68}={}){
@@ -519,7 +571,7 @@
       if(after)sequence.push({text:after,rate:Math.max(.64,rate)});
       return speakSequence(sequence);
     }
-    return speakSequence([{text:raw,rate}]);
+    return speakOnce(raw,{rate,pitch:1});
   }
 
   if("speechSynthesis" in window){
@@ -558,7 +610,7 @@
       <div class="hero-letter">م</div>
       <h1 class="hero-title">هذا حرف ميم</h1>
       <p>درس واحد بسيط. نسمع الحرف، نميّزه، نراه في الكلمات، ثم نعرف مكانه واتصاله وحركاته ومدوده.</p>
-      ${audioButton("هٰذَا حَرْفُ مِيمْ. مِيمْ.","اسمع حرف م")}
+      ${audioButton("هٰذَا حَرْفُ المِيمِ. مِيمْ.","اسمع حرف م")}
       <div class="actions"><button class="btn primary full" data-action="begin">ابدأ الدرس</button></div>
     </section>`;
   }
@@ -568,7 +620,7 @@
     return `<section class="card lesson-card">
       <span class="eyebrow">١ · أميّز الحرف</span>
       <h2>أين حرف م؟</h2>
-      ${audioButton("أَيْنَ حَرْفُ مِيمْ؟")}
+      ${audioButton("أَيْنَ حَرْفُ المِيمِ؟")}
       ${dots(state.identifyIndex,IDENTIFY_ROUNDS.length)}
       <div class="identify-grid">
         ${choices.map(ch=>{
@@ -628,7 +680,7 @@
     return `<section class="card">
       <span class="eyebrow">٣ · قطار الكلمة</span>
       <h2>أين حرف م الأحمر؟</h2>
-      ${audioButton(`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`)}
+      ${audioButton(`أَيْنَ حَرْفُ المِيمِ؟ ${ex.full||ex.spoken}`)}
       ${dots(state.trainIndex,state.trainRound.length)}
       ${trainWordTiles(ex)}
       <div class="train-hint">${state.trainAnswered?"شاهد كيف توزعت حروف الكلمة على العربات":"اختر العربة التي تمثل مكان حرف م"}</div>
@@ -738,7 +790,7 @@
       id:"identify-"+Date.now()+"-"+Math.random(),
       type:"identify",
       prompt:"أين حرف م؟",
-      spoken:"أَيْنَ حَرْفُ مِيمْ؟",
+      spoken:"أَيْنَ حَرْفُ المِيمِ؟",
       options,
       answer:"م",
       retryCount:0,
@@ -819,7 +871,7 @@
       id:"position-"+Date.now()+"-"+Math.random(),
       type:"position-practice",
       prompt:"أين حرف م الأحمر؟",
-      spoken:`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`,
+      spoken:`أَيْنَ حَرْفُ المِيمِ؟ ${ex.full||ex.spoken}`,
       options:["start","middle","end"],
       answer:position,
       example:ex,
@@ -1052,7 +1104,7 @@
     }
     if(q.type==="position"){
       const ex=EXAMPLES[q.example];
-      const qq={...q,prompt:`أين م في كلمة ${ex.word}؟`,spoken:`أَيْنَ حَرْفُ مِيمْ؟ ${ex.spoken}`,answer:ex.position};
+      const qq={...q,prompt:`أين م في كلمة ${ex.word}؟`,spoken:`أَيْنَ حَرْفُ المِيمِ؟ ${ex.full||ex.spoken}`,answer:ex.position};
       return challengeShell(qq,`<div class="train-word big-word">${highlightExample(ex)}</div>${challengeTrain(ex.position)}`);
     }
     if(q.type==="sound"){
@@ -1307,8 +1359,8 @@
     screen.querySelectorAll("[data-identify]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.identifyAnswered)return;
       state.identifyAnswered=true;state.identifyChoice=btn.dataset.identify;
-      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak(SUCCESS_SPOKEN+". هٰذَا حَرْفُ مِيمْ.");}
-      else speak("هٰذَا هُوَ حَرْفُ مِيمْ.");
+      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak(SUCCESS_SPOKEN+". هٰذَا حَرْفُ المِيمِ.");}
+      else speak("هٰذَا هُوَ حَرْفُ المِيمِ.");
       render();save();
     }));
 
@@ -1321,7 +1373,7 @@
       const ex=state.trainRound[state.trainIndex];
       state.trainAnswered=true;state.trainChoice=btn.dataset.train;
       if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
-      else speak(`حرف ميم في ${ex.label}.`);
+      else speak(`حَرْفُ المِيمِ فِي ${POSITION_SPOKEN[ex.position]||ex.label}.`);
       render();save();
     }));
 
@@ -1409,10 +1461,10 @@
 
     screen.querySelectorAll("[data-action]").forEach(btn=>btn.addEventListener("click",()=>{
       const a=btn.dataset.action;
-      if(a==="begin"){resetStageData();setStage("identify",{speakText:"أَيْنَ حَرْفُ مِيمْ؟"});}
+      if(a==="begin"){resetStageData();setStage("identify",{speakText:"أَيْنَ حَرْفُ المِيمِ؟"});}
       if(a==="identify-next"){
-        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ مِيمْ؟"),120);}
-        else setStage("words",{speakText:"اضغط الكلمات واسمعها. الحرف الأحمر هو حرف ميم."});
+        if(state.identifyIndex<IDENTIFY_ROUNDS.length-1){state.identifyIndex++;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;render();save();setTimeout(()=>speak("أَيْنَ حَرْفُ المِيمِ؟"),120);}
+        else setStage("words",{speakText:"اِسْتَمِعْ إِلَى الكَلِمَاتِ. الحَرْفُ الأَحْمَرُ هُوَ المِيمُ."});
       }
       if(a==="words-next"){
         state.trainRound=createTrainRound();
@@ -1422,7 +1474,7 @@
       }
       if(a==="train-next"){
         if(state.trainIndex<state.trainRound.length-1){state.trainIndex++;state.trainAnswered=false;state.trainChoice=null;render();save();setTimeout(()=>speakPositionPrompt(state.trainRound[state.trainIndex],{withInstruction:true}),120);}
-        else setStage("joining",{speakText:"الآن نرى كيف يتصل حرف ميم داخل الكلمات."});
+        else setStage("joining",{speakText:"الآنَ نَرَى كَيْفَ يَتَّصِلُ حَرْفُ المِيمِ دَاخِلَ الكَلِمَاتِ."});
       }
       if(a==="joining-next"){
         state.visitedVowels=new Set();
@@ -1590,20 +1642,19 @@
       }catch{}
       refreshArabicVoice();
       stopSpeech();
-      setTimeout(()=>speakSequence([
-        {text:TARGET_SPOKEN,rate:.56,pauseAfter:130},
-        {text:EXAMPLES[0].full+"،",rate:.56}
-      ]),70);
+      setTimeout(()=>speakOnce(
+        TARGET_SPOKEN+"، "+EXAMPLES[0].full+".",
+        {rate:.55,pitch:1}
+      ),90);
     });
   }
 
   if(voiceTest){
     voiceTest.addEventListener("click",()=>{
-      speakSequence([
-        {text:TARGET_SPOKEN,rate:.56,pauseAfter:150},
-        {text:EXAMPLES[0].full+"،",rate:.56,pauseAfter:160},
-        {text:EXAMPLES[2].full+"،",rate:.56,pauseAfter:160}
-      ]).then(()=>speakShortThenLong("مَ","مَا"));
+      speakOnce(
+        TARGET_SPOKEN+"، "+EXAMPLES[0].full+"، "+EXAMPLES[2].full+".",
+        {rate:.55,pitch:1}
+      ).then(()=>setTimeout(()=>speakShortThenLong("مَ","مَا"),180));
     });
   }
 
