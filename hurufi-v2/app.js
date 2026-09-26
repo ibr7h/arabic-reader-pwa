@@ -1001,7 +1001,7 @@
       <p>${passed?"أصبحت جاهزًا للمستوى التالي.":"سنغير ترتيب الأسئلة ونحاول مرة أخرى."}</p>
       <div class="actions">
         <button class="btn primary full" data-action="${passed?(config.id===PRACTICE_LEVELS.length?"practice-finish":"practice-next-level"):"practice-retry"}">
-          ${passed?(config.id===PRACTICE_LEVELS.length?"إنهاء الدرس":"المستوى التالي"):"أعد المستوى"}
+          ${passed?(config.id===PRACTICE_LEVELS.length?"التالي: أمسك القلم ✏️":"المستوى التالي"):"أعد المستوى"}
         </button>
         <button class="btn" data-action="practice-hub">عرض المستويات</button>
       </div>
