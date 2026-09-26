@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.11";
+  const VERSION="2.0.0-alpha.12";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -84,7 +84,7 @@
     {id:5,title:"اختبار الإتقان",icon:"🏆",count:15,threshold:85,description:"اختبار شامل متغير بلا ترتيب محفوظ."}
   ];
 
-  const STAGES=["intro","identify","words","train","joining","vowels","madd","practice","finish"];
+  const STAGES=["intro","identify","words","train","joining","vowels","madd","practice","prewrite","finish"];
   const screen=document.getElementById("screen");
   const backBtn=document.getElementById("backBtn");
   const soundBtn=document.getElementById("soundBtn");
@@ -131,6 +131,12 @@
     practiceAnswered:false,
     practiceChoice:null,
     practiceBaseCount:0,
+    prewriteMode:"lesson",
+    prewriteIndex:0,
+    prewriteScore:0,
+    prewriteAnswered:false,
+    prewriteChoice:null,
+    prewriteOrder:null,
     challengeIndex:0,
     challengeScore:0,
     challengeAnswered:false,
@@ -503,7 +509,7 @@
   }
 
   function progress(){
-    const map={intro:0,identify:11,words:22,train:34,joining:46,vowels:58,madd:70,practice:86,finish:100};
+    const map={intro:0,identify:10,words:20,train:31,joining:42,vowels:54,madd:66,practice:81,prewrite:94,finish:100};
     return map[state.stage]??0;
   }
 
@@ -1081,6 +1087,154 @@
   }
   function isCurrentChallengeCorrect(){return String(state.challengeChoice)===String(currentChallengeAnswer())}
 
+  const PREWRITE_QUESTIONS=[
+    {
+      type:"visual",
+      prompt:"أي مسكة تساعدك على الكتابة براحة؟",
+      spoken:"أَيُّ مَسْكَةٍ تُسَاعِدُكَ عَلَى الكِتَابَةِ بِرَاحَة؟",
+      options:["tripod","fist","high"],
+      answer:"tripod"
+    },
+    {
+      type:"text",
+      prompt:"على أي إصبع يستند القلم؟",
+      spoken:"عَلَى أَيِّ إِصْبَعٍ يَسْتَنِدُ القَلَم؟",
+      options:["الإصبع الأوسط","الخنصر","طرف السبابة فقط"],
+      answer:"الإصبع الأوسط"
+    },
+    {
+      type:"visual",
+      prompt:"أي مسكة بعيدة جدًا عن رأس القلم؟",
+      spoken:"أَيُّ مَسْكَةٍ بَعِيدَةٌ جِدًّا عَنْ رَأْسِ القَلَم؟",
+      options:["high","tripod","relaxed"],
+      answer:"high"
+    }
+  ];
+
+  function gripSvg(kind){
+    const configs={
+      tripod:{pencil:"rotate(-28 80 60)",fingers:[[80,55],[96,62],[86,75]],palm:[118,76,42,28],tone:"#dff7e8",accent:"#34a486"},
+      relaxed:{pencil:"rotate(-24 80 60)",fingers:[[78,56],[95,64],[87,76]],palm:[116,78,44,29],tone:"#eaf8ff",accent:"#52b7e8"},
+      angle:{pencil:"rotate(-34 80 60)",fingers:[[82,54],[98,62],[88,74]],palm:[118,77,42,28],tone:"#fff6df",accent:"#f4b942"},
+      fist:{pencil:"rotate(3 80 60)",fingers:[[88,54],[88,65],[88,76],[101,58]],palm:[103,70,46,36],tone:"#fff0f3",accent:"#ff5b70"},
+      vertical:{pencil:"rotate(-2 80 60)",fingers:[[82,50],[94,58],[84,70]],palm:[106,72,42,30],tone:"#fff0f3",accent:"#ff5b70"},
+      high:{pencil:"rotate(-28 80 60)",fingers:[[112,36],[124,44],[114,55]],palm:[132,58,38,28],tone:"#fff0f3",accent:"#ff5b70"}
+    };
+    const k=configs[kind]||configs.tripod;
+    const circles=k.fingers.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i===2?10:11}" fill="#f6b989" stroke="#dc8f62" stroke-width="2"/>`).join("");
+    return `<svg class="grip-svg" viewBox="0 0 180 120" aria-hidden="true">
+      <rect x="5" y="5" width="170" height="110" rx="24" fill="${k.tone}"/>
+      <ellipse cx="${k.palm[0]}" cy="${k.palm[1]}" rx="${k.palm[2]}" ry="${k.palm[3]}" fill="#f7bf91" stroke="#dc8f62" stroke-width="2"/>
+      <g transform="${k.pencil}">
+        <rect x="25" y="55" width="112" height="12" rx="6" fill="#18a26f" stroke="#087e52" stroke-width="2"/>
+        <polygon points="20,61 30,55 30,67" fill="#f1c27d"/>
+        <polygon points="18,61 23,59 23,63" fill="#31353a"/>
+        <rect x="132" y="55" width="12" height="12" rx="3" fill="#f26f8f"/>
+      </g>
+      ${circles}
+      <circle cx="151" cy="25" r="13" fill="${k.accent}"/>
+      <text x="151" y="31" text-anchor="middle" font-size="18" font-weight="900" fill="#fff">${["tripod","relaxed","angle"].includes(kind)?"✓":"×"}</text>
+    </svg>`;
+  }
+
+  function prewriteLessonView(){
+    const correct=[
+      ["tripod","ثلاثة أصابع","الإبهام والسبابة يمسكان القلم، ويستند على الأوسط."],
+      ["relaxed","يد مرتاحة","لا نضغط بقوة على القلم."],
+      ["angle","ميل مريح","القلم مائل قليلًا أثناء الكتابة."]
+    ];
+    const wrong=[
+      ["fist","قبضة كاملة","لا نقبض على القلم بكل اليد."],
+      ["vertical","قلم عمودي","لا نجعل القلم واقفًا بشكل حاد."],
+      ["high","بعيد عن السن","لا نمسك القلم بعيدًا جدًا عن رأسه."]
+    ];
+    return `<section class="card prewrite-card">
+      <span class="eyebrow">٨ · الاستعداد للكتابة</span>
+      <div class="prewrite-title-row"><span class="prewrite-star">⭐</span><h2>أمسك القلم بشكل صحيح</h2></div>
+      <p>انظر إلى الفرق بين المسكة المريحة والمسكات التي تجعل الكتابة أصعب.</p>
+      <div class="grip-board">
+        <div class="grip-column correct">
+          <div class="grip-column-title"><span>✓</span> صحيح</div>
+          ${correct.map(([kind,title,desc])=>`<button class="grip-example" data-grip-audio="${escapeHTML(title+". "+desc)}">
+            ${gripSvg(kind)}<strong>${title}</strong><small>${desc}</small>
+          </button>`).join("")}
+        </div>
+        <div class="grip-column wrong">
+          <div class="grip-column-title"><span>×</span> غير صحيح</div>
+          ${wrong.map(([kind,title,desc])=>`<button class="grip-example" data-grip-audio="${escapeHTML(title+". "+desc)}">
+            ${gripSvg(kind)}<strong>${title}</strong><small>${desc}</small>
+          </button>`).join("")}
+        </div>
+      </div>
+      <div class="prewrite-tip"><b>قاعدة سهلة:</b> أمسك القلم برفق، قريبًا من رأسه، واجعله يستند على الإصبع الأوسط.</div>
+      <div class="actions"><button class="btn primary full" data-action="prewrite-start">اختبرني ✏️</button></div>
+    </section>`;
+  }
+
+  function prewriteOptions(q){
+    if(!Array.isArray(state.prewriteOrder)){
+      state.prewriteOrder=shuffledWithMovedAnswer(q.options,q.answer,"prewrite-"+state.prewriteIndex);
+    }
+    return state.prewriteOrder;
+  }
+
+  function prewriteChoiceMarkup(q,value){
+    const correct=state.prewriteAnswered&&String(value)===String(q.answer);
+    const wrong=state.prewriteAnswered&&String(value)===String(state.prewriteChoice)&&String(value)!==String(q.answer);
+    let cls="prewrite-choice"+(correct?" correct":"")+(wrong?" wrong":"");
+    if(q.type==="visual"){
+      const labels={
+        tripod:"مسكة صحيحة",
+        relaxed:"يد مرتاحة",
+        high:"بعيد عن السن",
+        fist:"قبضة كاملة",
+        vertical:"قلم عمودي"
+      };
+      return `<button class="${cls} visual" data-prewrite-choice="${escapeHTML(value)}" ${state.prewriteAnswered?"disabled":""}>
+        ${gripSvg(value)}<strong>${labels[value]||""}</strong>
+      </button>`;
+    }
+    return `<button class="${cls} text" data-prewrite-choice="${escapeHTML(value)}" ${state.prewriteAnswered?"disabled":""}>${escapeHTML(value)}</button>`;
+  }
+
+  function prewriteQuizView(){
+    const q=PREWRITE_QUESTIONS[state.prewriteIndex];
+    return `<section class="card prewrite-quiz">
+      <span class="eyebrow">٨ · تدريب مسك القلم</span>
+      ${dots(state.prewriteIndex,PREWRITE_QUESTIONS.length)}
+      <h2>${q.prompt}</h2>
+      ${audioButton(q.spoken)}
+      <div class="${q.type==="visual"?"prewrite-visual-options":"prewrite-text-options"}">
+        ${prewriteOptions(q).map(v=>prewriteChoiceMarkup(q,v)).join("")}
+      </div>
+      ${state.prewriteAnswered?`<div class="feedback ${String(state.prewriteChoice)===String(q.answer)?"good":"bad"}">
+        ${String(state.prewriteChoice)===String(q.answer)?"أَحْسَنْتَ! 🌟":"انظر إلى المثال الصحيح وحاول تذكر القاعدة."}
+      </div>
+      <div class="actions"><button class="btn primary full" data-action="prewrite-next">${state.prewriteIndex===PREWRITE_QUESTIONS.length-1?"النتيجة":"التالي"}</button></div>`:""}
+    </section>`;
+  }
+
+  function prewriteResultView(){
+    const passed=state.prewriteScore>=2;
+    return `<section class="card lesson-card prewrite-result">
+      <div class="prewrite-result-icon">${passed?"✏️🌟":"✏️"}</div>
+      <span class="eyebrow">الاستعداد للكتابة</span>
+      <h2>${passed?"ممتاز — جاهز للكتابة":"نراجع طريقة المسك مرة أخرى"}</h2>
+      <div class="practice-score">${state.prewriteScore} / 3</div>
+      <p>${passed?"تذكّر: مسكة خفيفة، قريبة من رأس القلم، والقلم يستند على الإصبع الأوسط.":"أعد اللوحة ثم جرّب الاختبار مرة أخرى."}</p>
+      <div class="actions">
+        <button class="btn primary full" data-action="${passed?"prewrite-finish":"prewrite-retry"}">${passed?"إنهاء درس م":"أعد التدريب"}</button>
+        <button class="btn" data-action="prewrite-lesson">راجع الأمثلة</button>
+      </div>
+    </section>`;
+  }
+
+  function prewriteView(){
+    if(state.prewriteMode==="lesson")return prewriteLessonView();
+    if(state.prewriteMode==="result")return prewriteResultView();
+    return prewriteQuizView();
+  }
+
   function finishView(){
     const finalResult=state.practiceResults[PRACTICE_LEVELS.length];
     const percent=finalResult?.percent??0;
@@ -1111,6 +1265,7 @@
     else if(state.stage==="vowels")screen.innerHTML=vowelView();
     else if(state.stage==="madd")screen.innerHTML=maddView();
     else if(state.stage==="practice")screen.innerHTML=practiceView();
+    else if(state.stage==="prewrite")screen.innerHTML=prewriteView();
     else screen.innerHTML=finishView();
     bind();
   }
@@ -1206,6 +1361,25 @@
       render();save();
     }));
 
+    screen.querySelectorAll("[data-grip-audio]").forEach(btn=>btn.addEventListener("click",()=>{
+      speak(btn.dataset.gripAudio,{rate:.64});
+    }));
+
+    screen.querySelectorAll("[data-prewrite-choice]").forEach(btn=>btn.addEventListener("click",()=>{
+      if(state.prewriteAnswered)return;
+      const q=PREWRITE_QUESTIONS[state.prewriteIndex];
+      state.prewriteAnswered=true;
+      state.prewriteChoice=btn.dataset.prewriteChoice;
+      if(String(state.prewriteChoice)===String(q.answer)){
+        state.prewriteScore++;
+        celebrate();
+        speak(SUCCESS_SPOKEN+".");
+      }else{
+        speak("نُرَاجِعُ القَاعِدَةَ وَنُحَاوِلُ مَرَّةً أُخْرَى.");
+      }
+      render();save();
+    }));
+
     screen.querySelectorAll("[data-action]").forEach(btn=>btn.addEventListener("click",()=>{
       const a=btn.dataset.action;
       if(a==="begin"){resetStageData();setStage("identify",{speakText:"أَيْنَ حَرْفُ مِيمْ؟"});}
@@ -1256,7 +1430,10 @@
       if(a==="practice-retry")startPracticeLevel(state.practiceLevel);
       if(a==="practice-next-level")startPracticeLevel(Math.min(PRACTICE_LEVELS.length,state.practiceLevel+1));
       if(a==="practice-hub"){state.practiceMode="hub";render();save();}
-      if(a==="practice-finish"){setStage("finish");celebrate();}
+      if(a==="practice-finish"){
+        state.prewriteMode="lesson";state.prewriteIndex=0;state.prewriteScore=0;state.prewriteAnswered=false;state.prewriteChoice=null;state.prewriteOrder=null;
+        setStage("prewrite",{speakText:"قَبْلَ الكِتَابَةِ، نَتَعَلَّمُ كَيْفَ نُمْسِكُ القَلَمَ بِشَكْلٍ صَحِيح."});
+      }
       if(a==="challenge-next"){
         if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{
           if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});
@@ -1265,6 +1442,24 @@
         },120);}
         else{setStage("finish");celebrate();}
       }
+      if(a==="prewrite-start"){
+        state.prewriteMode="quiz";state.prewriteIndex=0;state.prewriteScore=0;state.prewriteAnswered=false;state.prewriteChoice=null;state.prewriteOrder=null;
+        render();save();setTimeout(()=>speak(PREWRITE_QUESTIONS[0].spoken),120);
+      }
+      if(a==="prewrite-next"){
+        if(state.prewriteIndex<PREWRITE_QUESTIONS.length-1){
+          state.prewriteIndex++;state.prewriteAnswered=false;state.prewriteChoice=null;state.prewriteOrder=null;
+          render();save();setTimeout(()=>speak(PREWRITE_QUESTIONS[state.prewriteIndex].spoken),120);
+        }else{
+          state.prewriteMode="result";render();save();
+        }
+      }
+      if(a==="prewrite-retry"){
+        state.prewriteMode="quiz";state.prewriteIndex=0;state.prewriteScore=0;state.prewriteAnswered=false;state.prewriteChoice=null;state.prewriteOrder=null;
+        render();save();setTimeout(()=>speak(PREWRITE_QUESTIONS[0].spoken),120);
+      }
+      if(a==="prewrite-lesson"){state.prewriteMode="lesson";render();save();}
+      if(a==="prewrite-finish"){setStage("finish");celebrate();}
       if(a==="practice-return"){state.practiceMode="hub";setStage("practice");}
       if(a==="restart-challenge"){state.challengeIndex=0;state.challengeScore=0;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;setStage("challenge",{speakText:CHALLENGE[0].spoken});}
       if(a==="restart-all"){localStorage.removeItem(STORAGE_KEY);location.reload();}
@@ -1273,11 +1468,11 @@
 
   function resetStageData(){
     state.identifyIndex=0;state.identifyScore=0;state.identifyAnswered=false;state.identifyChoice=null;state.identifyOrder=null;
-    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();state.visitedVowels=new Set();state.visitedMadd=new Set();state.practiceMode="hub";state.practiceLevel=1;state.practiceUnlocked=1;state.practiceResults={};state.practiceQueue=[];state.practiceIndex=0;state.practiceScore=0;state.practiceAnswered=false;state.practiceChoice=null;
+    state.visitedWords=new Set();state.trainIndex=0;state.trainScore=0;state.trainAnswered=false;state.trainChoice=null;state.trainRound=createTrainRound();state.visitedVowels=new Set();state.visitedMadd=new Set();state.practiceMode="hub";state.practiceLevel=1;state.practiceUnlocked=1;state.practiceResults={};state.practiceQueue=[];state.practiceIndex=0;state.practiceScore=0;state.practiceAnswered=false;state.practiceChoice=null;state.prewriteMode="lesson";state.prewriteIndex=0;state.prewriteScore=0;state.prewriteAnswered=false;state.prewriteChoice=null;state.prewriteOrder=null;
   }
 
   function goBack(){
-    const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",practice:"madd",finish:"practice"};
+    const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",practice:"madd",prewrite:"practice",finish:"prewrite"};
     const target=map[state.stage];
     if(target)setStage(target);
   }
@@ -1298,6 +1493,7 @@
         visitedWords:[...state.visitedWords],trainIndex:state.trainIndex,trainScore:state.trainScore,trainRound:state.trainRound,visitedVowels:[...state.visitedVowels],visitedMadd:[...state.visitedMadd],
         practiceMode:state.practiceMode,practiceLevel:state.practiceLevel,practiceUnlocked:state.practiceUnlocked,practiceResults:state.practiceResults,
         practiceQueue:state.practiceQueue,practiceIndex:state.practiceIndex,practiceScore:state.practiceScore,practiceAnswered:state.practiceAnswered,practiceChoice:state.practiceChoice,practiceBaseCount:state.practiceBaseCount,
+        prewriteMode:state.prewriteMode,prewriteIndex:state.prewriteIndex,prewriteScore:state.prewriteScore,prewriteAnswered:state.prewriteAnswered,prewriteChoice:state.prewriteChoice,
         challengeIndex:state.challengeIndex,challengeScore:state.challengeScore
       }));
     }catch{}
@@ -1326,6 +1522,12 @@
       state.practiceAnswered=!!p.practiceAnswered;
       state.practiceChoice=p.practiceChoice??null;
       state.practiceBaseCount=Math.max(0,Number(p.practiceBaseCount)||0);
+      state.prewriteMode=["lesson","quiz","result"].includes(p.prewriteMode)?p.prewriteMode:"lesson";
+      state.prewriteIndex=Math.max(0,Math.min(PREWRITE_QUESTIONS.length-1,Number(p.prewriteIndex)||0));
+      state.prewriteScore=Math.max(0,Number(p.prewriteScore)||0);
+      state.prewriteAnswered=!!p.prewriteAnswered;
+      state.prewriteChoice=p.prewriteChoice??null;
+      state.prewriteOrder=null;
       state.challengeIndex=Math.max(0,Math.min(CHALLENGE.length-1,Number(p.challengeIndex)||0));
       state.challengeScore=Number(p.challengeScore)||0;
       state.identifyOrder=null;
