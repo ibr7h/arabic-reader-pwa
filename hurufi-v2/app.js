@@ -373,6 +373,7 @@
     processing:false,
     epoch:0,
     activeAudio:null,
+    activeAudioCancel:null,
     activeTtsCancel:null,
 
     interrupt(){
@@ -380,7 +381,11 @@
       const pending=this.queue.splice(0);
       pending.forEach(item=>item.resolve(false));
 
-      if(this.activeAudio){
+      if(this.activeAudioCancel){
+        const cancelAudio=this.activeAudioCancel;
+        this.activeAudioCancel=null;
+        cancelAudio();
+      }else if(this.activeAudio){
         try{
           this.activeAudio.pause();
           this.activeAudio.currentTime=0;
@@ -528,8 +533,17 @@
           audio.onended=null;
           audio.onerror=null;
           if(this.activeAudio===audio)this.activeAudio=null;
+          if(this.activeAudioCancel===cancel)this.activeAudioCancel=null;
           resolve(ok);
         };
+        const cancel=()=>{
+          try{
+            audio.pause();
+            audio.currentTime=0;
+          }catch{}
+          done(false);
+        };
+        this.activeAudioCancel=cancel;
 
         audio.onended=()=>done(true);
         audio.onerror=()=>done(false);
@@ -619,13 +633,14 @@
       });
     }
 
+    const expectedEpoch=replace?audioManager.epoch+1:audioManager.epoch;
     const sources=repeat?[src,src]:[src];
     return audioManager.enqueue(
       {kind:"files",sources,gapMs:120},
       {replace}
     ).then(ok=>{
       if(ok)return true;
-      if(!state.sound)return false;
+      if(!state.sound||audioManager.epoch!==expectedEpoch)return false;
       const profile=soundProfile(glyph);
       return speakOnce(repeat?profile.repeat:profile.single,{
         rate:profile.rate,
@@ -644,12 +659,13 @@
       return speakShortThenLongFallback(shortGlyph,longGlyph,{replace});
     }
 
+    const expectedEpoch=replace?audioManager.epoch+1:audioManager.epoch;
     return audioManager.enqueue(
       {kind:"files",sources:[shortSrc,longSrc],gapMs:170},
       {replace}
     ).then(ok=>{
       if(ok)return true;
-      if(!state.sound)return false;
+      if(!state.sound||audioManager.epoch!==expectedEpoch)return false;
       return speakShortThenLongFallback(shortGlyph,longGlyph,{replace:false});
     });
   }
@@ -1179,21 +1195,21 @@
     return q._order;
   }
 
-  function speakPracticeQuestion(q){
+  function speakPracticeQuestion(q,{replace=false}={}){
     if(!q)return;
     if(q.type==="audio-sound"){
-      speakEducationalSound(q.spoken,{repeat:false});
+      speakEducationalSound(q.spoken,{repeat:false,replace});
       return;
     }
     if(q.type==="position-practice"){
-      speakPositionPrompt(q.example,{withInstruction:false});
+      speakPositionPrompt(q.example,{withInstruction:false,replace});
       return;
     }
     if(q.type==="classify"||q.type==="pair"||q.type==="visual-sound"){
       speakEducationalSound(q.spoken,{repeat:false});
       return;
     }
-    speak(q.spoken||q.prompt);
+    speak(q.spoken||q.prompt,{replace});
   }
 
   function practiceHubView(){
@@ -1564,39 +1580,39 @@
   }
 
   function bind(){
-    screen.querySelectorAll("[data-speak]").forEach(btn=>btn.addEventListener("click",()=>speak(btn.dataset.speak)));
+    screen.querySelectorAll("[data-speak]").forEach(btn=>btn.addEventListener("click",()=>speak(btn.dataset.speak,{replace:true})));
 
     screen.querySelectorAll("[data-identify]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.identifyAnswered)return;
       state.identifyAnswered=true;state.identifyChoice=btn.dataset.identify;
-      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak(SUCCESS_SPOKEN+". هٰذَا حَرْفُ المِيمِ.");}
-      else speak("هٰذَا هُوَ حَرْفُ المِيمِ.");
+      if(state.identifyChoice==="م"){state.identifyScore++;celebrate();speak(SUCCESS_SPOKEN+". هٰذَا حَرْفُ المِيمِ.",{replace:true});}
+      else speak("هٰذَا هُوَ حَرْفُ المِيمِ.",{replace:true});
       render();save();
     }));
 
     screen.querySelectorAll("[data-word]").forEach(btn=>btn.addEventListener("click",()=>{
-      const idx=Number(btn.dataset.word);state.visitedWords.add(idx);speakWord(EXAMPLES[idx]);render();save();
+      const idx=Number(btn.dataset.word);state.visitedWords.add(idx);speakWord(EXAMPLES[idx],{replace:true});render();save();
     }));
 
     screen.querySelectorAll("[data-train]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.trainAnswered)return;
       const ex=state.trainRound[state.trainIndex];
       state.trainAnswered=true;state.trainChoice=btn.dataset.train;
-      if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
-      else speak(`حَرْفُ المِيمِ فِي ${POSITION_SPOKEN[ex.position]||ex.label}.`);
+      if(state.trainChoice===ex.position){state.trainScore++;celebrate();speak(SUCCESS_SPOKEN+".",{replace:true});}
+      else speak(`حَرْفُ المِيمِ فِي ${POSITION_SPOKEN[ex.position]||ex.label}.`,{replace:true});
       render();save();
     }));
 
     screen.querySelectorAll("[data-connection-word]").forEach(btn=>btn.addEventListener("click",()=>{
       const idx=Number(btn.dataset.connectionWord);const ex=EXAMPLES[idx],meta=CONNECTION_LABELS[ex.connection];
-      speakWordAndConnection(ex,CONNECTION_SPOKEN[ex.connection]||meta[0]);
+      speakWordAndConnection(ex,CONNECTION_SPOKEN[ex.connection]||meta[0],{replace:true});
     }));
 
     screen.querySelectorAll("[data-vowel]").forEach(btn=>btn.addEventListener("click",()=>{
       const item=SHORT_VOWELS.find(x=>x.id===btn.dataset.vowel);
       if(!item)return;
       state.visitedVowels.add(item.id);
-      speakEducationalSound(item.glyph,{repeat:true});
+      speakEducationalSound(item.glyph,{repeat:true,replace:true});
       render();save();
     }));
 
@@ -1604,19 +1620,19 @@
       const item=MADD_FORMS.find(x=>x.id===btn.dataset.madd);
       if(!item)return;
       state.visitedMadd.add(item.id);
-      speakShortThenLong(item.short,item.glyph);
+      speakShortThenLong(item.short,item.glyph,{replace:true});
       render();save();
     }));
 
     screen.querySelectorAll("[data-challenge-sound]").forEach(btn=>btn.addEventListener("click",()=>{
-      speakEducationalSound(btn.dataset.challengeSound,{repeat:false});
+      speakEducationalSound(btn.dataset.challengeSound,{repeat:false,replace:true});
     }));
 
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
       if(state.challengeAnswered)return;
       state.challengeAnswered=true;state.challengeChoice=btn.dataset.challenge;
-      if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak(SUCCESS_SPOKEN+".");}
-      else speak("حَاوِلْ أَنْ تُلَاحِظَ حَرْفَ المِيمِ.");
+      if(isCurrentChallengeCorrect()){state.challengeScore++;celebrate();speak(SUCCESS_SPOKEN+".",{replace:true});}
+      else speak("حَاوِلْ أَنْ تُلَاحِظَ حَرْفَ المِيمِ.",{replace:true});
       render();save();
     }));
 
@@ -1626,7 +1642,7 @@
     }));
 
     screen.querySelectorAll("[data-practice-audio]").forEach(btn=>btn.addEventListener("click",()=>{
-      speakPracticeQuestion(currentPracticeQuestion());
+      speakPracticeQuestion(currentPracticeQuestion(),{replace:true});
     }));
 
     screen.querySelectorAll("[data-practice-choice]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -1639,9 +1655,9 @@
       if(correct){
         if(q.retryCount===0)state.practiceScore++;
         celebrate();
-        speak(SUCCESS_SPOKEN+".");
+        speak(SUCCESS_SPOKEN+".",{replace:true});
       }else{
-        speak("حَاوِلْ مَرَّةً أُخْرَى بَعْدَ قَلِيلٍ.");
+        speak("حَاوِلْ مَرَّةً أُخْرَى بَعْدَ قَلِيلٍ.",{replace:true});
         if(state.practiceLevel<5 && q.retryCount<1){
           const retry={...q,retryCount:q.retryCount+1,_order:null,id:q.id+"-retry"};
           state.practiceQueue.push(retry);
@@ -1651,7 +1667,7 @@
     }));
 
     screen.querySelectorAll("[data-grip-audio]").forEach(btn=>btn.addEventListener("click",()=>{
-      speak(btn.dataset.gripAudio,{rate:.64});
+      speak(btn.dataset.gripAudio,{rate:.64,replace:true});
     }));
 
     screen.querySelectorAll("[data-prewrite-choice]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -1662,9 +1678,9 @@
       if(String(state.prewriteChoice)===String(q.answer)){
         state.prewriteScore++;
         celebrate();
-        speak(SUCCESS_SPOKEN+".");
+        speak(SUCCESS_SPOKEN+".",{replace:true});
       }else{
-        speak("نُرَاجِعُ القَاعِدَةَ وَنُحَاوِلُ مَرَّةً أُخْرَى.");
+        speak("نُرَاجِعُ القَاعِدَةَ وَنُحَاوِلُ مَرَّةً أُخْرَى.",{replace:true});
       }
       render();save();
     }));
@@ -1766,6 +1782,7 @@
   }
 
   function goBack(){
+    stopSpeech();
     const map={identify:"intro",words:"identify",train:"words",joining:"train",vowels:"joining",madd:"vowels",practice:"madd",prewrite:"practice",finish:"prewrite"};
     const target=map[state.stage];
     if(target)setStage(target);
@@ -1859,7 +1876,7 @@
       stopSpeech();
       setTimeout(()=>speakOnce(
         TARGET_SPOKEN+"، "+EXAMPLES[0].full+".",
-        {rate:.55,pitch:1}
+        {rate:.55,pitch:1,replace:true}
       ),90);
     });
   }
@@ -1868,8 +1885,10 @@
     voiceTest.addEventListener("click",()=>{
       speakOnce(
         TARGET_SPOKEN+"، "+EXAMPLES[0].full+"، "+EXAMPLES[2].full+".",
-        {rate:.55,pitch:1}
-      ).then(()=>setTimeout(()=>speakShortThenLong("مَ","مَا"),180));
+        {rate:.55,pitch:1,replace:true}
+      ).then(ok=>{
+        if(ok)setTimeout(()=>speakShortThenLong("مَ","مَا",{replace:false}),180);
+      });
     });
   }
 
