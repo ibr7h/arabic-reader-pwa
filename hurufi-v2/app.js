@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.12";
+  const VERSION="2.0.0-alpha.13";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -24,27 +24,27 @@
   const WEB_FONTS=new Set(["school","scheherazade","harmattan","sans","kufi","baloo","cairo","readex"]);
 
   const EXAMPLES=[
-    {word:"موز", spoken:"مَوْز", pause:"مَوْزْ", finalSound:"زْ", targetIndex:0, position:"start", connection:"next", label:"البداية"},
-    {word:"قمر", spoken:"قَمَر", pause:"قَمَرْ", finalSound:"رْ", targetIndex:1, position:"middle", connection:"both", label:"الوسط"},
-    {word:"علم", spoken:"عَلَم", pause:"عَلَمْ", finalSound:"مْ", targetIndex:2, position:"end", connection:"previous", label:"النهاية"},
-    {word:"نجوم", spoken:"نُجُوم", pause:"نُجُومْ", finalSound:"مْ", targetIndex:3, position:"end", connection:"isolated", label:"منفصل في النهاية"}
+    {word:"موز", spoken:"مَوْز", full:"مَوْزٌ", sentence:"مَوْزٍ", pause:"مَوْزْ", finalSound:"زٌ", targetIndex:0, position:"start", connection:"next", label:"البداية"},
+    {word:"قمر", spoken:"قَمَر", full:"قَمَرٌ", sentence:"قَمَرٍ", pause:"قَمَرْ", finalSound:"رٌ", targetIndex:1, position:"middle", connection:"both", label:"الوسط"},
+    {word:"علم", spoken:"عَلَم", full:"عَلَمٌ", sentence:"عَلَمٍ", pause:"عَلَمْ", finalSound:"مٌ", targetIndex:2, position:"end", connection:"previous", label:"النهاية"},
+    {word:"نجوم", spoken:"نُجُوم", full:"نُجُومٌ", sentence:"نُجُومٍ", pause:"نُجُومْ", finalSound:"مٌ", targetIndex:3, position:"end", connection:"isolated", label:"منفصل في النهاية"}
   ];
 
   const TRAIN_WORD_BANK={
     start:[
-      {word:"ملك",spoken:"مَلَك",pause:"مَلَكْ",targetIndex:0,position:"start",label:"البداية"},
-      {word:"مسك",spoken:"مِسْك",pause:"مِسْكْ",targetIndex:0,position:"start",label:"البداية"},
-      {word:"مرح",spoken:"مَرَح",pause:"مَرَحْ",targetIndex:0,position:"start",label:"البداية"}
+      {word:"ملك",spoken:"مَلَك",full:"مَلَكٌ",sentence:"مَلَكٍ",pause:"مَلَكْ",targetIndex:0,position:"start",label:"البداية"},
+      {word:"مسك",spoken:"مِسْك",full:"مِسْكٌ",sentence:"مِسْكٍ",pause:"مِسْكْ",targetIndex:0,position:"start",label:"البداية"},
+      {word:"مرح",spoken:"مَرَح",full:"مَرَحٌ",sentence:"مَرَحٍ",pause:"مَرَحْ",targetIndex:0,position:"start",label:"البداية"}
     ],
     middle:[
-      {word:"رمل",spoken:"رَمْل",pause:"رَمْلْ",targetIndex:1,position:"middle",label:"الوسط"},
-      {word:"حمد",spoken:"حَمْد",pause:"حَمْدْ",targetIndex:1,position:"middle",label:"الوسط"},
-      {word:"سمن",spoken:"سَمْن",pause:"سَمْنْ",targetIndex:1,position:"middle",label:"الوسط"}
+      {word:"رمل",spoken:"رَمْل",full:"رَمْلٌ",sentence:"رَمْلٍ",pause:"رَمْلْ",targetIndex:1,position:"middle",label:"الوسط"},
+      {word:"حمد",spoken:"حَمْد",full:"حَمْدٌ",sentence:"حَمْدٍ",pause:"حَمْدْ",targetIndex:1,position:"middle",label:"الوسط"},
+      {word:"سمن",spoken:"سَمْن",full:"سَمْنٌ",sentence:"سَمْنٍ",pause:"سَمْنْ",targetIndex:1,position:"middle",label:"الوسط"}
     ],
     end:[
-      {word:"قلم",spoken:"قَلَم",pause:"قَلَمْ",targetIndex:2,position:"end",label:"النهاية"},
-      {word:"نجم",spoken:"نَجْم",pause:"نَجْمْ",targetIndex:2,position:"end",label:"النهاية"},
-      {word:"لحم",spoken:"لَحْم",pause:"لَحْمْ",targetIndex:2,position:"end",label:"النهاية"}
+      {word:"قلم",spoken:"قَلَم",full:"قَلَمٌ",sentence:"قَلَمٍ",pause:"قَلَمْ",targetIndex:2,position:"end",label:"النهاية"},
+      {word:"نجم",spoken:"نَجْم",full:"نَجْمٌ",sentence:"نَجْمٍ",pause:"نَجْمْ",targetIndex:2,position:"end",label:"النهاية"},
+      {word:"لحم",spoken:"لَحْم",full:"لَحْمٌ",sentence:"لَحْمٍ",pause:"لَحْمْ",targetIndex:2,position:"end",label:"النهاية"}
     ]
   };
 
@@ -59,6 +59,15 @@
     {id:"yaa",short:"مِ",glyph:"مِي",name:"مدّ بالياء",spoken:"مِي",letter:"ي",color:"violet"},
     {id:"waw",short:"مُ",glyph:"مُو",name:"مدّ بالواو",spoken:"مُو",letter:"و",color:"sky"}
   ];
+
+  const SOUND_PROFILES={
+    "مَ":{tts:"مَـ.",rate:.52,pitch:1},
+    "مِ":{tts:"مِـ.",rate:.52,pitch:1},
+    "مُ":{tts:"مُـ.",rate:.52,pitch:1},
+    "مَا":{tts:"مَا.",rate:.46,pitch:1},
+    "مِي":{tts:"مِي.",rate:.46,pitch:1},
+    "مُو":{tts:"مُو.",rate:.46,pitch:1}
+  };
 
   const IDENTIFY_ROUNDS=[
     ["م","هـ","ن","ب"],
@@ -446,9 +455,30 @@
     }
   }
 
-  function speakWord(example){
+  function soundProfile(glyph){
+    return SOUND_PROFILES[glyph]||{tts:glyph,rate:.52,pitch:1};
+  }
+
+  function speakEducationalSound(glyph,{repeat=false}={}){
+    const profile=soundProfile(glyph);
+    const parts=[{text:profile.tts,rate:profile.rate,pitch:profile.pitch,pauseAfter:repeat?180:80}];
+    if(repeat)parts.push({text:profile.tts,rate:profile.rate,pitch:profile.pitch,pauseAfter:70});
+    return speakSequence(parts);
+  }
+
+  function speakShortThenLong(shortGlyph,longGlyph){
+    const short=soundProfile(shortGlyph);
+    const long=soundProfile(longGlyph);
     return speakSequence([
-      {text:example.pause,rate:.54,pitch:1,pauseAfter:80}
+      {text:short.tts,rate:short.rate,pitch:short.pitch,pauseAfter:260},
+      {text:long.tts,rate:long.rate,pitch:long.pitch,pauseAfter:100}
+    ]);
+  }
+
+  function speakWord(example,{mode="full"}={}){
+    const text=mode==="pause"?example.pause:(mode==="sentence"?example.sentence:example.full);
+    return speakSequence([
+      {text:text||example.spoken,rate:.56,pitch:1,pauseAfter:90}
     ]);
   }
 
@@ -458,33 +488,33 @@
 
   function speakPositionPrompt(example,{withInstruction=true}={}){
     const parts=[
-      {text:"أَيْنَ حَرْفُ مِيمْ؟",rate:.68,pauseAfter:150},
-      {text:example.pause,rate:.54,pauseAfter:130}
+      {text:"أَيْنَ حَرْفُ المِيمِ فِي الكَلِمَةِ الآتِيَةِ؟",rate:.68,pauseAfter:180},
+      {text:example.full||example.spoken,rate:.56,pauseAfter:150}
     ];
-    if(withInstruction)parts.push({text:"اِضْغَطِ العَرَبَةَ المُنَاسِبَة.",rate:.68});
+    if(withInstruction)parts.push({text:"اِضْغَطِ العَرَبَةَ المُنَاسِبَةَ.",rate:.68});
     return speakSequence(parts);
   }
 
   function speakWordAndConnection(example,label){
     return speakSequence([
-      {text:example.pause,rate:.54,pauseAfter:150},
-      {text:"حَرْفُ مِيمْ. "+label+".",rate:.66}
+      {text:example.full||example.spoken,rate:.56,pauseAfter:170},
+      {text:"حَرْفُ المِيمِ. "+label+".",rate:.66}
     ]);
   }
 
   function speak(text,{rate=.68}={}){
     if(!state.sound || !("speechSynthesis" in window)) return;
     const raw=String(text||"").trim();
-    const example=EXAMPLES.find(ex=>raw.includes(ex.spoken)||raw.includes(ex.pause));
+    const example=EXAMPLES.find(ex=>raw.includes(ex.spoken)||raw.includes(ex.pause)||raw.includes(ex.full)||raw.includes(ex.sentence));
     if(example){
-      if(raw===example.spoken||raw===example.pause)return speakWord(example);
-      const token=raw.includes(example.pause)?example.pause:example.spoken;
+      if([example.spoken,example.pause,example.full,example.sentence].includes(raw))return speakWord(example,{mode:"full"});
+      const token=[example.full,example.sentence,example.pause,example.spoken].find(t=>t&&raw.includes(t))||example.spoken;
       const parts=raw.split(token);
       const sequence=[];
       const before=(parts[0]||"").trim().replace(/[،,:؛\-–—]+$/,"");
       const after=(parts.slice(1).join(token)||"").trim().replace(/^[؟?!،,:؛\s]+/,"");
       if(before)sequence.push({text:before,rate:Math.max(.64,rate),pauseAfter:130});
-      sequence.push({text:example.pause,rate:.54,pauseAfter:130});
+      sequence.push({text:example.full||example.spoken,rate:.56,pauseAfter:140});
       if(after)sequence.push({text:after,rate:Math.max(.64,rate)});
       return speakSequence(sequence);
     }
@@ -889,7 +919,7 @@
   function speakPracticeQuestion(q){
     if(!q)return;
     if(q.type==="audio-sound"){
-      speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+      speakEducationalSound(q.spoken,{repeat:false});
       return;
     }
     if(q.type==="position-practice"){
@@ -897,7 +927,7 @@
       return;
     }
     if(q.type==="classify"||q.type==="pair"||q.type==="visual-sound"){
-      speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+      speakEducationalSound(q.spoken,{repeat:false});
       return;
     }
     speak(q.spoken||q.prompt);
@@ -1303,7 +1333,7 @@
       const item=SHORT_VOWELS.find(x=>x.id===btn.dataset.vowel);
       if(!item)return;
       state.visitedVowels.add(item.id);
-      speakSequence([{text:item.spoken,rate:.50,pauseAfter:80}]);
+      speakEducationalSound(item.glyph,{repeat:true});
       render();save();
     }));
 
@@ -1311,16 +1341,12 @@
       const item=MADD_FORMS.find(x=>x.id===btn.dataset.madd);
       if(!item)return;
       state.visitedMadd.add(item.id);
-      speakSequence([
-        {text:item.short,rate:.50,pauseAfter:180},
-        {text:item.spoken,rate:.46,pauseAfter:80}
-      ]);
+      speakShortThenLong(item.short,item.glyph);
       render();save();
     }));
 
     screen.querySelectorAll("[data-challenge-sound]").forEach(btn=>btn.addEventListener("click",()=>{
-      const rate=btn.dataset.soundKind==="madd"?.46:.50;
-      speakSequence([{text:btn.dataset.challengeSound,rate,pauseAfter:80}]);
+      speakEducationalSound(btn.dataset.challengeSound,{repeat:false});
     }));
 
     screen.querySelectorAll("[data-challenge]").forEach(btn=>btn.addEventListener("click",()=>{
@@ -1437,7 +1463,7 @@
       if(a==="challenge-next"){
         if(state.challengeIndex<CHALLENGE.length-1){state.challengeIndex++;state.challengeAnswered=false;state.challengeChoice=null;state.challengeOrder=null;render();save();const q=CHALLENGE[state.challengeIndex];setTimeout(()=>{
           if(q.type==="position")speakPositionPrompt(EXAMPLES[q.example],{withInstruction:false});
-          else if(q.type==="sound")speakSequence([{text:q.spoken,rate:q.soundKind==="madd"?.46:.50}]);
+          else if(q.type==="sound")speakEducationalSound(q.spoken,{repeat:false});
           else speak(q.spoken);
         },120);}
         else{setStage("finish");celebrate();}
@@ -1574,9 +1600,9 @@
     voiceTest.addEventListener("click",()=>{
       speakSequence([
         {text:TARGET_SPOKEN,rate:.56,pauseAfter:150},
-        {text:EXAMPLES[0].pause,rate:.54,pauseAfter:150},
-        {text:EXAMPLES[2].pause,rate:.54}
-      ]);
+        {text:EXAMPLES[0].full,rate:.56,pauseAfter:160},
+        {text:EXAMPLES[2].full,rate:.56,pauseAfter:160}
+      ]).then(()=>speakShortThenLong("مَ","مَا"));
     });
   }
 
