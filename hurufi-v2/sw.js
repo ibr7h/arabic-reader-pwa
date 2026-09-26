@@ -1,7 +1,7 @@
-const CACHE="hurufi-v2-alpha15";
+const CACHE="hurufi-v2-alpha16";
 const FONT_CACHE="hurufi-v2-fonts-v2";
 const AUDIO_CACHE="hurufi-v2-audio-v1";
-const VERSION="2.0.0-alpha.15";
+const VERSION="2.0.0-alpha.16";
 const SHELL=[
   ["./index.html","./index.html?v="+VERSION],
   ["./styles.css","./styles.css?v="+VERSION],
