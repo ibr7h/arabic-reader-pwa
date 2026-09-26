@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION="2.0.0-alpha.14";
+  const VERSION="2.0.0-alpha.15";
   const TARGET="م";
   const TARGET_SPOKEN="مِيمْ";
   const SUCCESS_SPOKEN="أَحْسَنْتَ";
@@ -67,6 +67,15 @@
     "مَا":{single:"مَا.",repeat:"مَا، مَا.",rate:.47,pitch:1},
     "مِي":{single:"مِي.",repeat:"مِي، مِي.",rate:.47,pitch:1},
     "مُو":{single:"مُو.",repeat:"مُو، مُو.",rate:.47,pitch:1}
+  };
+
+  const PHONICS_AUDIO={
+    "مَ":"./assets/audio/phonics/ma-short.mp3",
+    "مِ":"./assets/audio/phonics/mi-short.mp3",
+    "مُ":"./assets/audio/phonics/mu-short.mp3",
+    "مَا":"./assets/audio/phonics/maa-long.mp3",
+    "مِي":"./assets/audio/phonics/mii-long.mp3",
+    "مُو":"./assets/audio/phonics/muu-long.mp3"
   };
 
   const POSITION_SPOKEN={
@@ -359,6 +368,8 @@
   let preferredArabicVoice=null;
   let selectedVoiceId=loadVoicePreference();
   let speechGeneration=0;
+  let phonicsGeneration=0;
+  let activePhonicsAudio=null;
 
   function loadVoicePreference(){
     try{return localStorage.getItem(VOICE_KEY)||"";}catch{return "";}
@@ -409,9 +420,102 @@
     populateVoiceSelect(voices);
   }
 
+  function stopPhonicsAudio(){
+    phonicsGeneration++;
+    if(activePhonicsAudio){
+      try{
+        activePhonicsAudio.pause();
+        activePhonicsAudio.currentTime=0;
+      }catch{}
+      activePhonicsAudio=null;
+    }
+  }
+
   function stopSpeech(){
     speechGeneration++;
     try{speechSynthesis.cancel();}catch{}
+    stopPhonicsAudio();
+  }
+
+  function stopTTSOnly(){
+    speechGeneration++;
+    try{speechSynthesis.cancel();}catch{}
+  }
+
+  function playAudioFile(src,generation){
+    return new Promise(resolve=>{
+      if(generation!==phonicsGeneration||!state.sound){resolve(false);return;}
+      const audio=new Audio(src);
+      activePhonicsAudio=audio;
+      audio.preload="auto";
+      audio.volume=1;
+
+      let finished=false;
+      const done=ok=>{
+        if(finished)return;
+        finished=true;
+        audio.onended=null;
+        audio.onerror=null;
+        if(activePhonicsAudio===audio)activePhonicsAudio=null;
+        resolve(ok);
+      };
+
+      audio.onended=()=>done(true);
+      audio.onerror=()=>done(false);
+
+      try{
+        const promise=audio.play();
+        if(promise&&typeof promise.catch==="function")promise.catch(()=>done(false));
+      }catch{
+        done(false);
+      }
+    });
+  }
+
+  async function playPhonics(glyph,{repeat=false}={}){
+    if(!state.sound)return;
+    const src=PHONICS_AUDIO[glyph];
+    if(!src){
+      const profile=soundProfile(glyph);
+      return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
+    }
+
+    stopTTSOnly();
+    stopPhonicsAudio();
+    const generation=phonicsGeneration;
+    const count=repeat?2:1;
+
+    for(let i=0;i<count;i++){
+      const ok=await playAudioFile(src,generation);
+      if(generation!==phonicsGeneration)return;
+      if(!ok){
+        const profile=soundProfile(glyph);
+        return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
+      }
+      if(i<count-1)await wait(120);
+    }
+  }
+
+  async function playShortThenLong(shortGlyph,longGlyph){
+    if(!state.sound)return;
+    const shortSrc=PHONICS_AUDIO[shortGlyph];
+    const longSrc=PHONICS_AUDIO[longGlyph];
+
+    if(!shortSrc||!longSrc)return speakShortThenLongFallback(shortGlyph,longGlyph);
+
+    stopTTSOnly();
+    stopPhonicsAudio();
+    const generation=phonicsGeneration;
+
+    const first=await playAudioFile(shortSrc,generation);
+    if(generation!==phonicsGeneration)return;
+    if(!first)return speakShortThenLongFallback(shortGlyph,longGlyph);
+
+    await wait(170);
+    if(generation!==phonicsGeneration)return;
+
+    const second=await playAudioFile(longSrc,generation);
+    if(!second&&generation===phonicsGeneration)return speakShortThenLongFallback(shortGlyph,longGlyph);
   }
 
   function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
@@ -427,8 +531,9 @@
       .replace(/الآن نرى كيف يتصل حرف ميم داخل الكلمات\.?/g,"الآنَ نَرَى كَيْفَ يَتَّصِلُ حَرْفُ المِيمِ دَاخِلَ الكَلِمَاتِ.")
       .replace(/حاول أن تلاحظ حرف ميم\.?/g,"حَاوِلْ أَنْ تُلَاحِظَ حَرْفَ المِيمِ.")
       .replace(/حرف ميم/g,"حَرْفُ المِيمِ")
-      .replace(/اضغط/g,"اِخْتَرْ")
-      .replace(/أضغط/g,"اِخْتَرْ")
+      .replace(/اضغط/g,"اِضْغَطْ")
+      .replace(/أضغط/g,"اِضْغَطْ")
+      .replace(/إضغط/g,"اِضْغَطْ")
       .trim();
   }
 
@@ -515,17 +620,20 @@
   }
 
   function speakEducationalSound(glyph,{repeat=false}={}){
-    const profile=soundProfile(glyph);
-    return speakOnce(repeat?profile.repeat:profile.single,{rate:profile.rate,pitch:profile.pitch});
+    return playPhonics(glyph,{repeat});
   }
 
-  function speakShortThenLong(shortGlyph,longGlyph){
+  function speakShortThenLongFallback(shortGlyph,longGlyph){
     const short=soundProfile(shortGlyph);
     const long=soundProfile(longGlyph);
     return speakOnce(
       bareSoundText(short)+"، "+bareSoundText(long)+".",
       {rate:.48,pitch:1}
     );
+  }
+
+  function speakShortThenLong(shortGlyph,longGlyph){
+    return playShortThenLong(shortGlyph,longGlyph);
   }
 
   function speakWord(example,{mode="full"}={}){
@@ -541,7 +649,7 @@
   }
 
   function speakPositionPrompt(example,{withInstruction=true}={}){
-    const instruction=withInstruction?" اِخْتَرِ العَرَبَةَ الصَّحِيحَةَ.":"";
+    const instruction=withInstruction?" اِضْغَطْ عَلَى العَرَبَةِ الصَّحِيحَةِ.":"";
     return speakOnce(
       "أَيْنَ حَرْفُ المِيمِ فِي هٰذِهِ الكَلِمَةِ؟ "+(example.full||example.spoken)+"،"+instruction,
       {rate:.60,pitch:1}
@@ -812,7 +920,7 @@
       type:"visual-sound",
       prompt:`اختر ${target.glyph}`,
       display:target.glyph,
-      spoken:`اِخْتَرْ ${target.spoken}`,
+      spoken:`اِضْغَطْ عَلَى ${target.spoken}`,
       options:SHORT_VOWELS.map(x=>x.glyph),
       answer:target.glyph,
       soundKind:"vowel",
@@ -961,7 +1069,12 @@
     state.practiceAnswered=false;
     state.practiceChoice=null;
     render();save();
-    setTimeout(()=>speakPracticeQuestion(currentPracticeQuestion()),140);
+    const firstQuestion=currentPracticeQuestion();
+    if(firstQuestion?.type==="audio-sound"||firstQuestion?.type==="classify"||firstQuestion?.type==="pair"||firstQuestion?.type==="visual-sound"){
+      speakPracticeQuestion(firstQuestion);
+    }else{
+      setTimeout(()=>speakPracticeQuestion(firstQuestion),120);
+    }
   }
 
   function currentPracticeQuestion(){
@@ -1510,7 +1623,12 @@
           render();save();
         }else{
           render();save();
-          setTimeout(()=>speakPracticeQuestion(currentPracticeQuestion()),120);
+          const nextQuestion=currentPracticeQuestion();
+          if(nextQuestion?.type==="audio-sound"||nextQuestion?.type==="classify"||nextQuestion?.type==="pair"||nextQuestion?.type==="visual-sound"){
+            speakPracticeQuestion(nextQuestion);
+          }else{
+            setTimeout(()=>speakPracticeQuestion(nextQuestion),120);
+          }
         }
       }
       if(a==="practice-retry")startPracticeLevel(state.practiceLevel);
@@ -1669,7 +1787,7 @@
   soundBtn.addEventListener("click",()=>{
     state.sound=!state.sound;
     soundBtn.textContent=state.sound?"🔊":"🔇";
-    if(!state.sound&&"speechSynthesis" in window)stopSpeech();
+    if(!state.sound)stopSpeech();
   });
 
   function versionParts(v){
