@@ -1,0 +1,44 @@
+name: Vendor Hurufi phonics audio
+
+on:
+  push:
+    paths:
+      - ".github/workflows/vendor-hurufi-phonics.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install speech tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak ffmpeg
+      - name: Generate six fixed phonics sounds
+        run: |
+          set -e
+          mkdir -p hurufi-v2/assets/audio/phonics /tmp/hurufi-phonics
+
+          espeak -v en-gb -s 115 -p 48 -a 170 -w /tmp/hurufi-phonics/ma.wav "maa"
+          espeak -v en-gb -s 115 -p 48 -a 170 -w /tmp/hurufi-phonics/mi.wav "mee"
+          espeak -v en-gb -s 115 -p 48 -a 170 -w /tmp/hurufi-phonics/mu.wav "moo"
+
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/ma.wav -t 0.28 -af "afade=t=out:st=0.24:d=0.04,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/ma-short.mp3
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/mi.wav -t 0.27 -af "afade=t=out:st=0.23:d=0.04,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/mi-short.mp3
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/mu.wav -t 0.28 -af "afade=t=out:st=0.24:d=0.04,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/mu-short.mp3
+
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/ma.wav -t 0.58 -af "afade=t=out:st=0.53:d=0.05,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/maa-long.mp3
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/mi.wav -t 0.50 -af "afade=t=out:st=0.45:d=0.05,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/mii-long.mp3
+          ffmpeg -y -hide_banner -loglevel error -i /tmp/hurufi-phonics/mu.wav -t 0.53 -af "afade=t=out:st=0.48:d=0.05,volume=1.15" -ar 22050 -ac 1 -b:a 64k hurufi-v2/assets/audio/phonics/muu-long.mp3
+      - name: Commit generated audio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hurufi-v2/assets/audio/phonics
+          git diff --cached --quiet && exit 0
+          git commit -m "Vendor fixed Hurufi phonics audio"
+          git push
