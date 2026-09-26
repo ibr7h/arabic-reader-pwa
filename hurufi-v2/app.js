@@ -455,7 +455,7 @@
         let finished=false;
         const keepAlive=setInterval(()=>{
           if(generation!==speechGeneration){
-            clearInterval(keepAlive);
+            done();
             return;
           }
           try{
